@@ -83,39 +83,56 @@ internal suspend fun <T> holdingVideo(hold: () -> Job?, release: () -> Job?, blo
 private val HighRefused: MutableSet<String> = java.util.concurrent.ConcurrentHashMap.newKeySet()
 
 internal fun openVideoEncoder(s: ExportSettings, width: Int, height: Int, hot: Boolean, note: (UiText) -> Unit = {}, bitrate: Int? = null): MediaCodec {
-    val mime = s.codec.mime
-    val infos = MediaCodecList(MediaCodecList.REGULAR_CODECS).codecInfos
-        .filter { it.isEncoder && !it.alias && mime in it.supportedTypes && it.getCapabilitiesForType(mime).videoCapabilities?.isSizeSupported(width, height) == true }
-        .sortedByDescending { it.hardware }
-    if (infos.isEmpty()) throw ExportError(txt(R.string.export_error_cannot_encode, s.codec.label, "${width}x$height"))
+    val candidateMimes = listOf(s.codec.mime, MediaFormat.MIMETYPE_VIDEO_AVC).distinct()
     var last: Throwable? = null
-    for (info in infos) {
-        if (ExportDebug.refuseHardware && info.hardware) continue
-        val caps = info.getCapabilitiesForType(mime)
-        val rated = runCatching { caps.videoCapabilities!!.getSupportedFrameRatesFor(width, height).upper }.getOrDefault(0.0)
-        val key = "${info.name} ${width}x$height ${s.fps}"
-        val high = mime == MediaFormat.MIMETYPE_VIDEO_AVC && key !in HighRefused && caps.profileLevels.any { it.profile == MediaCodecInfo.CodecProfileLevel.AVCProfileHigh }
-        val codec = try { MediaCodec.createByCodecName(info.name) } catch (e: Exception) {
-            last = e
-            Log.w("AMExport", "cannot create ${info.name}", e)
-            continue
-        }
-        var highFailed = false
-        for (bestEffort in if (hot || rated < 2.0 * s.fps) listOf(true, false) else listOf(false, true)) for (profile in if (high) listOf(true, false) else listOf(false)) {
-            try {
-                codec.configure(encoderFormat(info, caps, s, width, height, profile, bestEffort, hot, bitrate), null, null, MediaCodec.CONFIGURE_FLAG_ENCODE)
-                Log.i("AMExport", "encoding with ${info.name}${if (profile) " (High)" else ""}${if (bestEffort) " at best effort" else ""}; rated for ${rated.toInt()} fps at ${width}x$height")
-                if (highFailed && !profile) HighRefused += key
-                if (!info.hardware && infos.first().hardware) note(txt(R.string.export_note_software))
-                return codec
-            } catch (e: Exception) {
-                last = e
-                if (profile) highFailed = true
-                Log.w("AMExport", "${info.name} refused ${width}x$height at ${s.fps} fps${if (profile) " (High)" else ""}${if (bestEffort) " at best effort" else ""}", e)
-                runCatching { codec.reset() }
+
+    val allCodecInfos = runCatching { MediaCodecList(MediaCodecList.REGULAR_CODECS).codecInfos }.getOrDefault(emptyArray()) +
+        runCatching { MediaCodecList(MediaCodecList.ALL_CODECS).codecInfos }.getOrDefault(emptyArray())
+
+    for (mime in candidateMimes) {
+        val infos = allCodecInfos
+            .filter { it.isEncoder && !it.alias && mime in it.supportedTypes }
+            .distinctBy { it.name }
+            .sortedByDescending { it.hardware }
+
+        if (infos.isEmpty()) continue
+
+        for (info in infos) {
+            if (ExportDebug.refuseHardware && info.hardware) continue
+            val caps = try { info.getCapabilitiesForType(mime) } catch (e: Exception) { continue }
+            val vCaps = caps.videoCapabilities
+            val targetW = if (vCaps != null && !vCaps.isSizeSupported(width, height)) {
+                val clampedW = width.coerceIn(vCaps.supportedWidths.lower, vCaps.supportedWidths.upper)
+                val clampedH = height.coerceIn(vCaps.supportedHeights.lower, vCaps.supportedHeights.upper)
+                clampedW and 1.inv() to clampedH and 1.inv()
+            } else {
+                width to height
             }
+            val rated = runCatching { vCaps?.getSupportedFrameRatesFor(targetW.first, targetW.second)?.upper }.getOrDefault(0.0)
+            val key = "${info.name} ${targetW.first}x${targetW.second} ${s.fps}"
+            val high = mime == MediaFormat.MIMETYPE_VIDEO_AVC && key !in HighRefused && caps.profileLevels.any { it.profile == MediaCodecInfo.CodecProfileLevel.AVCProfileHigh }
+            val codec = try { MediaCodec.createByCodecName(info.name) } catch (e: Exception) {
+                last = e
+                Log.w("AMExport", "cannot create ${info.name}", e)
+                continue
+            }
+            var highFailed = false
+            for (bestEffort in if (hot || rated < 2.0 * s.fps) listOf(true, false) else listOf(false, true)) for (profile in if (high) listOf(true, false) else listOf(false)) {
+                try {
+                    codec.configure(encoderFormat(info, caps, s, targetW.first, targetW.second, profile, bestEffort, hot, bitrate), null, null, MediaCodec.CONFIGURE_FLAG_ENCODE)
+                    Log.i("AMExport", "encoding with ${info.name}${if (profile) " (High)" else ""}${if (bestEffort) " at best effort" else ""}; rated for ${rated.toInt()} fps at ${targetW.first}x${targetW.second}")
+                    if (highFailed && !profile) HighRefused += key
+                    if (!info.hardware || mime != s.codec.mime) note(txt(R.string.export_note_software))
+                    return codec
+                } catch (e: Exception) {
+                    last = e
+                    if (profile) highFailed = true
+                    Log.w("AMExport", "${info.name} refused ${targetW.first}x${targetW.second} at ${s.fps} fps${if (profile) " (High)" else ""}${if (bestEffort) " at best effort" else ""}", e)
+                    runCatching { codec.reset() }
+                }
+            }
+            codec.release()
         }
-        codec.release()
     }
     throw ExportError(txt(R.string.export_error_encoder_busy), last)
 }

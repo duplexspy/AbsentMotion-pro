@@ -314,6 +314,8 @@ internal fun ExportScreen(scene: Scene, frame: Int, engine: EngineThread, fromPr
     val storage = if (estimate < 0) StorageStatus.Enough else storageStatus(estimate, free)
     val blocked = exportBlock(storage, if (kind == ExportKind.Video) support else Support.Supported)
     val explain: (UiText) -> Unit = { failure = Failure(R.string.export_not_available, it) }
+    val isWeakDevice = remember(report) { report?.isWeakHardware == true }
+    var safeMode by rememberSaveable { mutableStateOf(isWeakDevice) }
 
     app.absentmotion.platform.ExportBars(dark = false, running = phase is Phase.Running)
     BackHandler {
@@ -459,6 +461,7 @@ internal fun ExportScreen(scene: Scene, frame: Int, engine: EngineThread, fromPr
                 }
             }
             TemplateToggle(asTemplate, { asTemplate = it }) { templateInfo = true }
+            SafeModeToggle(safeMode) { safeMode = it }
             bar()
         }
 
@@ -646,6 +649,23 @@ private fun TemplateToggle(checked: Boolean, onChange: (Boolean) -> Unit, onInfo
             Text(stringResource(R.string.also_keep_a_copy_as_a), Modifier.weight(1f, fill = false), color = Navy, maxLines = 1, overflow = TextOverflow.Ellipsis,
                 autoSize = androidx.compose.foundation.text.TextAutoSize.StepBased(11.sp, 16.sp))
             Box(Modifier.size(36.dp).clickable(onClick = onInfo), contentAlignment = Alignment.Center) { Icon(ExportIcons.Info, stringResource(R.string.export_info), Modifier.size(20.dp), tint = Am.HomeDim) }
+        }
+        Switch(
+            checked, onChange,
+            colors = SwitchDefaults.colors(
+                checkedThumbColor = Am.HomeAccent, checkedTrackColor = Am.HomeAccent.copy(alpha = 0.5f), checkedBorderColor = Color.Transparent,
+                uncheckedThumbColor = Am.Thumb, uncheckedTrackColor = Am.SwitchOff, uncheckedBorderColor = Color.Transparent,
+            ),
+        )
+    }
+}
+
+@Composable
+private fun SafeModeToggle(checked: Boolean, onChange: (Boolean) -> Unit) {
+    Row(Modifier.fillMaxWidth().background(Am.Card).height(52.dp).padding(horizontal = 15.dp), verticalAlignment = Alignment.CenterVertically) {
+        Column(Modifier.weight(1f)) {
+            Text(stringResource(R.string.export_safe_mode), color = Navy, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+            Text(stringResource(R.string.export_safe_mode_desc), color = Am.HomeDim, fontSize = 11.sp, maxLines = 1)
         }
         Switch(
             checked, onChange,

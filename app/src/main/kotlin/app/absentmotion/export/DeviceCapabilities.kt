@@ -63,6 +63,10 @@ sealed interface Support {
 }
 
 data class DeviceReport(val key: String, val encoders: List<EncoderCaps>, val probe: ProbeResult? = null) {
+    val isWeakHardware: Boolean get() = encoders.none { it.hardware && it.fits(1920, 1080, 30) } ||
+        Runtime.getRuntime().maxMemory() / (1024 * 1024) < 256 ||
+        Runtime.getRuntime().availableProcessors() <= 4
+
     fun encodersFor(mime: String): List<EncoderCaps> = encoders.filter { it.mime == mime }
 
     fun hardware(codec: Codec): Boolean = encodersFor(codec.mime).any { it.hardware }
