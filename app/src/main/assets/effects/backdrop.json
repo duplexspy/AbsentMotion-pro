@@ -1,0 +1,25 @@
+{
+ "id": "backdrop",
+ "name": "Adjustment Layer",
+ "category": "color",
+ "native": true,
+ "description": "Copies what is drawn beneath the layer so later effects can change it. Mask To Layer limits the copy to the opaque parts of the layer. Mix brings the layer fill back.",
+ "params": [
+  {
+   "id": "mix",
+   "label": "Mix",
+   "type": "float",
+   "default": 0,
+   "min": 0,
+   "max": 1,
+   "step": 0.01
+  },
+  {
+   "id": "mask",
+   "label": "Mask To Layer",
+   "type": "switch",
+   "default": true,
+   "legacyDefault": false
+  }
+ ]
+}
