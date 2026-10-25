@@ -3587,3 +3587,26 @@ CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ~~~~
+
+---
+
+## 7. Video Codec Patents & Media Licensing Notice
+
+Absent Motion Pro utilizes hardware and platform software video encoders via Android's standard `android.media.MediaCodec` and `android.media.MediaMuxer` subsystem APIs. The application does not distribute proprietary encoder binaries.
+
+### H.264 / AVC (Advanced Video Coding)
+THIS PRODUCT IS LICENSED UNDER THE AVC PATENT PORTFOLIO LICENSE FOR THE PERSONAL USE OF A CONSUMER OR OTHER USES IN WHICH IT DOES NOT RECEIVE REMUNERATION TO (i) ENCODE VIDEO IN COMPLIANCE WITH THE AVC STANDARD ("AVC VIDEO") AND/OR (ii) DECODE AVC VIDEO THAT WAS ENCODED BY A CONSUMER ENGAGED IN A PERSONAL ACTIVITY AND/OR WAS OBTAINED FROM A VIDEO PROVIDER LICENSED TO PROVIDE AVC VIDEO. NO LICENSE IS GRANTED OR SHALL BE IMPLIED FOR ANY OTHER USE. ADDITIONAL INFORMATION MAY BE OBTAINED FROM MPEG LA, L.L.C. SEE HTTP://WWW.MPEGLA.COM.
+
+### H.265 / HEVC (High Efficiency Video Coding)
+COVERED BY ONE OR MORE CLAIMS OF THE HEVC PATENTS LISTED AT PATENTLIST.ACCESSADVANCE.COM AND/OR MPEG LA HEVC PATENT PORTFOLIO. ENCODING IS PERFORMED THROUGH PLATFORM CODECS LICENSED BY THE HARDWARE DEVICE MANUFACTURER OR PLATFORM VENDOR.
+
+### AV1 (AOMedia Video 1)
+AV1 video encoding and decoding support operates under the Alliance for Open Media Patent License 1.0:
+Copyright (c) 2018-2026, Alliance for Open Media. All rights reserved.
+Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at: http://www.apache.org/licenses/LICENSE-2.0.
+
+### VP9
+Copyright (c) 2014-2026, The WebM Project authors. All rights reserved.
+Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
+Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
+Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
