@@ -50,7 +50,7 @@ object PackParser {
                             }
                         }
                         "section" -> {
-                            val text = parser.getAttributeValue(null, "text") ?: ""
+                            val text = parser.getAttributeValue(null, "text") ?: parser.getAttributeValue(null, "title") ?: ""
                             currentSection = text
                             sectionHeaders[params.size] = text
                         }
@@ -117,7 +117,7 @@ object PackParser {
                             val label = parser.getAttributeValue(null, "label") ?: value
                             currentSelectorChoices.add(value to label)
                         }
-                        "shader" -> {
+                        "shader", "glsl" -> {
                             rawGlsl = parser.nextText() ?: ""
                         }
                         else -> {
