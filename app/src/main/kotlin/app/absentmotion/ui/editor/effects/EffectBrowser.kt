@@ -1,5 +1,6 @@
 package app.absentmotion.ui.editor.effects
 
+import android.graphics.Bitmap
 import android.graphics.drawable.AnimatedImageDrawable
 import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
@@ -15,6 +16,9 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.itemsIndexed
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
+import app.absentmotion.pro.EffectThumbnailManager
+import app.absentmotion.pro.ProFeatures
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -81,10 +85,17 @@ import kotlinx.coroutines.withContext
 import androidx.compose.ui.res.stringResource
 import app.absentmotion.R
 
+val LocalFastScrolling = compositionLocalOf { false }
+
 @Composable
 fun EffectBrowser(state: EditorState) {
     val catalog by state.engine.effects.collectAsState()
     val context = LocalContext.current
+    LaunchedEffect(context) {
+        if (ProFeatures.isEnabled(ProFeatures.effectThumbnailsLq)) {
+            EffectThumbnailManager.init(context)
+        }
+    }
     val scope = rememberCoroutineScope()
     val ai = remember(state, context, scope) { AiTools(context.applicationContext, state, scope) }
     val history = remember { context.getSharedPreferences("effects", 0) }
@@ -213,7 +224,7 @@ fun EffectBrowser(state: EditorState) {
         } else if (detail != null) {
             val effect = detail!!
             Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) {
-                Thumbnail(catalog, effect.thumbnail, Modifier.align(Alignment.CenterHorizontally).size(160.dp))
+                Thumbnail(catalog, effect.thumbnail, Modifier.align(Alignment.CenterHorizontally).size(160.dp), category = effect.category, name = effect.name)
                 Text(effect.description, Modifier.padding(top = 16.dp, bottom = 4.dp), color = Am.OnDark, fontSize = 14.sp)
                 Row(Modifier.fillMaxWidth().height(48.dp).clickable { helpPage = "effects/${effect.key}.html" }.padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically) {
                     Icon(ExportIcons.Help, null, Modifier.size(22.dp), tint = Am.OnDark)
@@ -248,78 +259,82 @@ fun EffectBrowser(state: EditorState) {
             val actions = if (searching || category == "ai") AiAction.entries.filter { it.offered && matchesSearch(query, stringResource(it.title)) } else emptyList()
             val presets = if (audio) emptyList() else catalog.definitions.flatMap { d -> d.presets.map { d to it } }
                 .filter { (d, p) -> if (searching) query.isNotBlank() && matchesSearch(query, p.name) else d.category == category }
-            LazyVerticalGrid(GridCells.Fixed(3), Modifier.fillMaxSize(), contentPadding = PaddingValues(10.dp)) {
-                items(actions, key = { "ai-${it.name}" }) { action -> AiTile(action, state.selected, ai) }
-                items(presets, key = { (d, p) -> "preset-${d.id}-${p.slug}" }) { (d, p) -> PresetTile(catalog, d, p) { add(d, p) } }
-                if (isCustomCategory) {
-                    val grouped = results.groupBy { it.packName ?: it.group ?: "Custom Effects" }
-                    if (results.isEmpty()) {
-                        item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(3) }, key = "empty-custom") {
-                            Column(
-                                Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 36.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally
-                            ) {
-                                Text(
-                                    stringResource(R.string.effects_pack_empty),
-                                    color = Am.OnDarkDim,
-                                    fontSize = 14.sp,
-                                    textAlign = TextAlign.Center
-                                )
-                                Spacer(Modifier.height(16.dp))
-                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    Box(
-                                        Modifier.clip(RoundedCornerShape(8.dp)).background(Am.Card)
-                                            .clickable { packPicker.launch() }.padding(horizontal = 12.dp, vertical = 8.dp)
-                                    ) {
-                                        Text("+ Pack", color = Am.Accent, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+            val gridState = rememberLazyGridState()
+            val isFastScrolling by remember { derivedStateOf { ProFeatures.isEnabled(ProFeatures.effectThumbnailsLq) && gridState.isScrollInProgress } }
+            CompositionLocalProvider(LocalFastScrolling provides isFastScrolling) {
+                LazyVerticalGrid(GridCells.Fixed(3), Modifier.fillMaxSize(), state = gridState, contentPadding = PaddingValues(10.dp)) {
+                    items(actions, key = { "ai-${it.name}" }) { action -> AiTile(action, state.selected, ai) }
+                    items(presets, key = { (d, p) -> "preset-${d.id}-${p.slug}" }) { (d, p) -> PresetTile(catalog, d, p) { add(d, p) } }
+                    if (isCustomCategory) {
+                        val grouped = results.groupBy { it.packName ?: it.group ?: "Custom Effects" }
+                        if (results.isEmpty()) {
+                            item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(3) }, key = "empty-custom") {
+                                Column(
+                                    Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 36.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    Text(
+                                        stringResource(R.string.effects_pack_empty),
+                                        color = Am.OnDarkDim,
+                                        fontSize = 14.sp,
+                                        textAlign = TextAlign.Center
+                                    )
+                                    Spacer(Modifier.height(16.dp))
+                                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                        Box(
+                                            Modifier.clip(RoundedCornerShape(8.dp)).background(Am.Card)
+                                                .clickable { packPicker.launch() }.padding(horizontal = 12.dp, vertical = 8.dp)
+                                        ) {
+                                            Text("+ Pack", color = Am.Accent, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                        }
+                                        Box(
+                                            Modifier.clip(RoundedCornerShape(8.dp)).background(Am.Card)
+                                                .clickable { singlePicker.launch() }.padding(horizontal = 12.dp, vertical = 8.dp)
+                                        ) {
+                                            Text("+ Single (.xml)", color = Am.Accent, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                        }
+                                        Box(
+                                            Modifier.clip(RoundedCornerShape(8.dp)).background(Am.Card)
+                                                .clickable { studioOpen = true }.padding(horizontal = 12.dp, vertical = 8.dp)
+                                        ) {
+                                            Text("+ Studio", color = Am.Accent, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                        }
                                     }
-                                    Box(
-                                        Modifier.clip(RoundedCornerShape(8.dp)).background(Am.Card)
-                                            .clickable { singlePicker.launch() }.padding(horizontal = 12.dp, vertical = 8.dp)
+                                }
+                            }
+                        } else {
+                            grouped.forEach { (packName, effs) ->
+                                item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(3) }, key = "hdr-$packName") {
+                                    Row(
+                                        Modifier.fillMaxWidth().padding(start = 6.dp, top = 14.dp, bottom = 6.dp),
+                                        verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        Text("+ Single (.xml)", color = Am.Accent, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                        Box(Modifier.size(4.dp, 16.dp).background(Am.Accent, RoundedCornerShape(2.dp)))
+                                        Spacer(Modifier.width(8.dp))
+                                        Text(
+                                            packName,
+                                            Modifier.weight(1f),
+                                            color = Am.Accent,
+                                            fontSize = 14.sp,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                        Text(
+                                            "${effs.size}",
+                                            color = Am.OnDarkDim,
+                                            fontSize = 12.sp,
+                                            fontWeight = FontWeight.Medium
+                                        )
+                                        Spacer(Modifier.width(6.dp))
                                     }
-                                    Box(
-                                        Modifier.clip(RoundedCornerShape(8.dp)).background(Am.Card)
-                                            .clickable { studioOpen = true }.padding(horizontal = 12.dp, vertical = 8.dp)
-                                    ) {
-                                        Text("+ Studio", color = Am.Accent, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                                    }
+                                }
+                                items(effs, key = { it.id }) { effect ->
+                                    EffectTile(catalog, effect, 100f, { pick(effect) }, { detail = effect }, effect.id in favourites)
                                 }
                             }
                         }
                     } else {
-                        grouped.forEach { (packName, effs) ->
-                            item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(3) }, key = "hdr-$packName") {
-                                Row(
-                                    Modifier.fillMaxWidth().padding(start = 6.dp, top = 14.dp, bottom = 6.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Box(Modifier.size(4.dp, 16.dp).background(Am.Accent, RoundedCornerShape(2.dp)))
-                                    Spacer(Modifier.width(8.dp))
-                                    Text(
-                                        packName,
-                                        Modifier.weight(1f),
-                                        color = Am.Accent,
-                                        fontSize = 14.sp,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                    Text(
-                                        "${effs.size}",
-                                        color = Am.OnDarkDim,
-                                        fontSize = 12.sp,
-                                        fontWeight = FontWeight.Medium
-                                    )
-                                    Spacer(Modifier.width(6.dp))
-                                }
-                            }
-                            items(effs, key = { it.id }) { effect ->
-                                EffectTile(catalog, effect, 100f, { pick(effect) }, { detail = effect }, effect.id in favourites)
-                            }
-                        }
+                        items(results, key = { it.id }) { effect -> EffectTile(catalog, effect, 100f, { pick(effect) }, { detail = effect }, effect.id in favourites) }
                     }
-                } else {
-                    items(results, key = { it.id }) { effect -> EffectTile(catalog, effect, 100f, { pick(effect) }, { detail = effect }, effect.id in favourites) }
                 }
             }
         } else {
@@ -362,7 +377,7 @@ fun EffectBrowser(state: EditorState) {
                                 .clickable(press, LocalIndication.current) { category = key }, contentAlignment = Alignment.Center) {
                                 if (key == "ai") AiBackdrop(Modifier.fillMaxSize())
                                 else if (key == "audio") AudioBackdrop(Modifier.fillMaxSize())
-                                else Thumbnail(catalog, catalog.listed(key).firstOrNull()?.thumbnail, Modifier.fillMaxSize(), ContentScale.Crop)
+                                else Thumbnail(catalog, catalog.listed(key).firstOrNull()?.thumbnail, Modifier.fillMaxSize(), ContentScale.Crop, category = key, name = name)
                                 Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.55f)))
                                 Text(name, color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
                             }
@@ -460,7 +475,7 @@ private fun EffectTile(catalog: EffectCatalog, effect: EffectDefinition, width: 
     Column(Modifier.width(width.dp).pressScale(press, TilePress).alpha(if (effect.available) 1f else 0.35f)
         .combinedClickable(press, LocalIndication.current, onClick = onClick, onLongClick = onLongClick).padding(5.dp), horizontalAlignment = Alignment.CenterHorizontally) {
         Box {
-            Thumbnail(catalog, effect.thumbnail, Modifier.size((width - 7).dp).clip(RoundedCornerShape(5.dp)))
+            Thumbnail(catalog, effect.thumbnail, Modifier.size((width - 7).dp).clip(RoundedCornerShape(5.dp)), category = effect.category, name = effect.name)
             if (favourite) Icon(PanelIcons.Star, null, Modifier.align(Alignment.TopEnd).size(14.dp), tint = Am.Accent)
             if (catalog.isNew(effect)) Text(stringResource(R.string.t_new), Modifier.align(Alignment.TopStart).padding(3.dp).clip(RoundedCornerShape(3.dp)).background(Am.Accent)
                 .padding(horizontal = 3.dp), color = Color.White, fontSize = 7.sp, lineHeight = 9.sp, fontWeight = FontWeight.Bold, maxLines = 1)
@@ -476,33 +491,90 @@ private fun PresetTile(catalog: EffectCatalog, effect: EffectDefinition, preset:
     Column(Modifier.width(100.dp).pressScale(press, TilePress).alpha(if (effect.available) 1f else 0.35f)
         .clickable(press, LocalIndication.current, enabled = effect.available, onClick = onClick).padding(5.dp),
         horizontalAlignment = Alignment.CenterHorizontally) {
-        Thumbnail(catalog, effect.thumbnail(preset), Modifier.size(93.dp).clip(RoundedCornerShape(5.dp)))
+        Thumbnail(catalog, effect.thumbnail(preset), Modifier.size(93.dp).clip(RoundedCornerShape(5.dp)), category = effect.category, name = preset.name)
         Text(preset.name, Modifier.fillMaxWidth().padding(top = 4.dp), color = Am.Accent, fontSize = 10.sp, lineHeight = 9.sp,
             textAlign = TextAlign.Center, maxLines = 2)
     }
 }
 
 @Composable
-internal fun Thumbnail(catalog: EffectCatalog, path: String?, modifier: Modifier, scale: ContentScale = ContentScale.Fit) {
-    val drawable by produceState<Drawable?>(null, catalog, path) {
-        value = withContext(Dispatchers.IO) { catalog.drawable(path) }
+internal fun Thumbnail(
+    catalog: EffectCatalog,
+    path: String?,
+    modifier: Modifier,
+    scale: ContentScale = ContentScale.Fit,
+    category: String? = null,
+    name: String? = null,
+) {
+    if (!ProFeatures.isEnabled(ProFeatures.effectThumbnailsLq)) {
+        val drawable by produceState<Drawable?>(null, catalog, path) {
+            value = withContext(Dispatchers.IO) { catalog.drawable(path) }
+        }
+        DisposableEffect(drawable) {
+            val shown = drawable
+            onDispose { (shown as? AnimatedImageDrawable)?.stop() }
+        }
+        Box(modifier.background(RecommendedBg)) {
+            when (val d = drawable) {
+                is AnimatedImageDrawable -> AndroidView({ ImageView(it) }, Modifier.fillMaxSize().clipToBounds(), update = { v ->
+                    v.scaleType = if (scale == ContentScale.Crop) ImageView.ScaleType.CENTER_CROP else ImageView.ScaleType.FIT_CENTER
+                    if (v.drawable !== d) {
+                        v.setImageDrawable(d)
+                        d.repeatCount = AnimatedImageDrawable.REPEAT_INFINITE
+                        d.start()
+                    }
+                })
+                is BitmapDrawable -> Image(d.bitmap.asImageBitmap(), null, Modifier.fillMaxSize(), contentScale = scale)
+                else -> {}
+            }
+        }
+        return
     }
-    DisposableEffect(drawable) {
-        val shown = drawable
-        onDispose { (shown as? AnimatedImageDrawable)?.stop() }
+
+    val isFastScrolling = LocalFastScrolling.current
+    val cachedBitmap = remember(path) { EffectThumbnailManager.get(path) }
+
+    if (cachedBitmap != null) {
+        Box(modifier.background(RecommendedBg)) {
+            Image(cachedBitmap.asImageBitmap(), null, Modifier.fillMaxSize(), contentScale = scale)
+        }
+        return
     }
+
+    if (isFastScrolling) {
+        val atlasBmp = remember(path) { EffectThumbnailManager.getAtlas(path) }
+        if (atlasBmp != null) {
+            Box(modifier.background(RecommendedBg)) {
+                Image(atlasBmp.asImageBitmap(), null, Modifier.fillMaxSize(), contentScale = scale)
+            }
+        } else {
+            val bgColor = remember(category) { EffectThumbnailManager.getPlaceholderColor(category) }
+            val glyph = remember(name) { EffectThumbnailManager.getPlaceholderGlyph(name) }
+            Box(modifier.background(bgColor), contentAlignment = Alignment.Center) {
+                Text(glyph, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp, maxLines = 1)
+            }
+        }
+        return
+    }
+
+    val loadedBitmap by produceState<Bitmap?>(null, catalog, path) {
+        if (path != null) {
+            value = withContext(Dispatchers.IO) {
+                EffectThumbnailManager.loadBitmap(catalog, path)
+            }
+        }
+    }
+
     Box(modifier.background(RecommendedBg)) {
-        when (val d = drawable) {
-            is AnimatedImageDrawable -> AndroidView({ ImageView(it) }, Modifier.fillMaxSize().clipToBounds(), update = { v ->
-                v.scaleType = if (scale == ContentScale.Crop) ImageView.ScaleType.CENTER_CROP else ImageView.ScaleType.FIT_CENTER
-                if (v.drawable !== d) {
-                    v.setImageDrawable(d)
-                    d.repeatCount = AnimatedImageDrawable.REPEAT_INFINITE
-                    d.start()
-                }
-            })
-            is BitmapDrawable -> Image(d.bitmap.asImageBitmap(), null, Modifier.fillMaxSize(), contentScale = scale)
-            else -> {}
+        val bmp = loadedBitmap
+        if (bmp != null) {
+            Image(bmp.asImageBitmap(), null, Modifier.fillMaxSize(), contentScale = scale)
+        } else {
+            val bgColor = remember(category) { EffectThumbnailManager.getPlaceholderColor(category) }
+            val glyph = remember(name) { EffectThumbnailManager.getPlaceholderGlyph(name) }
+            Box(Modifier.fillMaxSize().background(bgColor), contentAlignment = Alignment.Center) {
+                Text(glyph, color = Color.White.copy(alpha = 0.8f), fontWeight = FontWeight.Bold, fontSize = 12.sp, maxLines = 1)
+            }
         }
     }
 }

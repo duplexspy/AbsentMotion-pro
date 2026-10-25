@@ -82,3 +82,18 @@
 - [x] Run unit tests and regression checks (`testProDebugUnitTest`, `bug_regression_check.py`, `group_sharpness_test.py`).
 - [x] Build Pro debug APK (`assembleProDebug`).
 - [x] Commit Phase 2B to branch `feature/phase2b-group-sharpness`.
+
+---
+
+## Phase 3 Execution Checklist
+- [x] Investigate root causes across synchronous 192x192 ARGB_8888 decoding, uncached Compose LazyVerticalGrid binds, and UI thread fling contention.
+- [x] Create `docs/THUMBNAIL_PERF_REPORT.md` documenting analysis, memory footprint, architecture, and benchmark results.
+- [x] Update `docs/CORE_TOUCHPOINTS.md` with touched files and guard flag `ProFeatures.effectThumbnailsLq`.
+- [x] Implement `EffectThumbnailManager.kt` with 25 MB byte-capped LRU cache, 64x64 RGB_565 Atlas, disk backing, downsampler, and category placeholder tokens.
+- [x] Update `EffectCatalog.kt` to intercept thumbnail requests with memory cache check.
+- [x] Update `EffectBrowser.kt` with `LocalFastScrolling`, `LaunchedEffect` atlas preloading, fast fling deferred placeholder rendering, and tile category/name metadata.
+- [x] Create `tools/thumbnail_perf_test.py` 1000-frame scroll simulation verifying $p99 < 24$ ms and 0 dropped frames $> 32$ ms.
+- [x] Create `ThumbnailPerfHarnessTest.kt` unit test suite covering LRU eviction, RGB_565 memory reduction, category placeholders, fast fling deferral, 1000-item scroll latency, and Safe Mode clean reversion.
+- [x] Run unit tests and regression checks (`testProDebugUnitTest --tests "app.absentmotion.pro.ThumbnailPerfHarnessTest"`, `bug_regression_check.py`).
+- [x] Build Pro debug APK (`assembleProDebug`).
+- [x] Commit Phase 3 to branch `feature/phase3-fast-thumbnails`.

@@ -1,10 +1,13 @@
 package app.absentmotion.effects
 
 import android.graphics.ImageDecoder
+import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
 import app.absentmotion.R
 import app.absentmotion.i18n.currentLanguage
 import app.absentmotion.platform.Context
+import app.absentmotion.pro.EffectThumbnailManager
+import app.absentmotion.pro.ProFeatures
 import app.absentmotion.ui.editor.matchesSearch
 import org.json.JSONArray
 import org.json.JSONObject
@@ -39,6 +42,10 @@ data class EffectCatalog(
         ((if (definitions.any(::isNew)) listOf("new" to "New") else emptyList()) + EffectCategories).map { (k, v) -> k to (categoryNames[k] ?: v) }
 
     fun drawable(path: String?): Drawable? = path?.let { p ->
+        if (ProFeatures.isEnabled(ProFeatures.effectThumbnailsLq)) {
+            val cached = EffectThumbnailManager.get(p)
+            if (cached != null) return BitmapDrawable(null, cached)
+        }
         runCatching { open?.invoke(p)?.use { ImageDecoder.decodeDrawable(ImageDecoder.createSource(java.nio.ByteBuffer.wrap(it.readBytes()))) } }.getOrNull()
     }
 
