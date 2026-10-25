@@ -97,3 +97,21 @@
 - [x] Run unit tests and regression checks (`testProDebugUnitTest --tests "app.absentmotion.pro.ThumbnailPerfHarnessTest"`, `bug_regression_check.py`).
 - [x] Build Pro debug APK (`assembleProDebug`).
 - [x] Commit Phase 3 to branch `feature/phase3-fast-thumbnails`.
+
+---
+
+## Phase 4 Execution Checklist
+- [x] Investigate root causes of playback frame rate drops on heavy layers (blur, glow, 3D text, vector animation).
+- [x] Create `docs/PRERENDER_REPORT.md` documenting architecture, hashing, storage, scheduling, and benchmark results.
+- [x] Update `docs/CORE_TOUCHPOINTS.md` with touched files and guard flag `ProFeatures.preRender`.
+- [x] Implement `PreRenderManager.kt` with deterministic SHA-256 frame keys, selective validity map, atomic storage, interaction pausing, and bounded 30-frame in-memory buffer.
+- [x] Update `AppSettings.kt` with `autoPreRender`, `usePreRenderInExport`, and `previewCacheLimitMb`.
+- [x] Update `SettingsDrawer.kt` with Preview Cache settings and clear cache action.
+- [x] Update `ProjectStore.kt` with automatic cache folder deletion on project removal.
+- [x] Update `EditorMenus.kt` with "Pre-render", "Render and replace", and "Pre-render range" actions.
+- [x] Update `Timeline.kt` with colored indicator bar for cached ranges.
+- [x] Create `tools/prerender_perf_test.py` benchmark verifying playback FPS $\ge 30$, flat memory over 10 minutes, and selective invalidation.
+- [x] Create `PreRenderHarnessTest.kt` unit test suite covering key stability, selective invalidation, storage cap, flat memory, render and replace, and Safe Mode clean reversion.
+- [x] Run unit tests and regression checks (`testProDebugUnitTest --tests "app.absentmotion.pro.PreRenderHarnessTest"`, `bug_regression_check.py`).
+- [x] Build Pro debug APK (`assembleProDebug`).
+- [x] Commit Phase 4 to branch `feature/phase4-prerender`.

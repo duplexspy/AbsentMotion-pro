@@ -151,6 +151,9 @@ class ProjectStore(private val root: File) {
         thumbnailFile(id).delete()
         recoveryFile(id).delete()
         versions.delete(id)
+        if (app.absentmotion.pro.ProFeatures.isEnabled(app.absentmotion.pro.ProFeatures.preRender)) {
+            File(root.parentFile ?: root, "cache/prerender/$id").deleteRecursively()
+        }
         val projectFiles = dir.listFiles { f -> f.extension == "xml" }.orEmpty().toList()
         val templateFiles = File(root, "templates").listFiles { f -> f.isDirectory }.orEmpty().map { File(it, "scene.xml") }.filter { it.exists() }
         val folders = owners.map { folderUri(mediaDir(it)) }

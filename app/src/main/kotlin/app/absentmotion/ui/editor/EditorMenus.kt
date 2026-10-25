@@ -1,6 +1,8 @@
 package app.absentmotion.ui.editor
 
 import app.absentmotion.platform.Toast
+import app.absentmotion.pro.PreRenderManager
+import app.absentmotion.pro.ProFeatures
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -236,6 +238,19 @@ internal fun LayerMenu(state: EditorState, onDismiss: () -> Unit) {
             }
         }
         if (mediaRecord != null) MenuRow(stringResource(R.string.media_info)) { mediaInfo = true }
+        if (ProFeatures.isEnabled(ProFeatures.preRender) && state.selected != null) {
+            val selectedLayer = state.selected!!
+            MenuRow("Pre-render", divider = true) {
+                val start = state.scene.firstShownFrame(selectedLayer.startTime)
+                val end = state.scene.lastShownFrame(selectedLayer.endTime)
+                PreRenderManager.startPreRenderRange(context, state, selectedLayer, start, end)
+                onDismiss()
+            }
+            MenuRow("Render and replace") {
+                PreRenderManager.renderAndReplace(context, state, selectedLayer)
+                onDismiss()
+            }
+        }
         LabelColours(state, onDismiss)
     }
 }
@@ -314,6 +329,14 @@ internal fun CopyPasteMenu(state: EditorState, onDismiss: () -> Unit) {
             onDismiss()
         }
         MenuRow(stringResource(R.string.menu_paste_style), enabled = layer != null && state.canPaste, icon = ChromeIcons.PasteStyle, trailing = ChromeIcons.ChevronRight) { styleOpen = true }
+        if (ProFeatures.isEnabled(ProFeatures.preRender) && layer != null) {
+            MenuRow("Pre-render range") {
+                val start = state.scene.firstShownFrame(layer.startTime)
+                val end = state.scene.lastShownFrame(layer.endTime)
+                PreRenderManager.startPreRenderRange(context, state, layer, start, end)
+                onDismiss()
+            }
+        }
         if (state.scene.isElement) {
             MenuRow(stringResource(R.string.menu_set_intro_end), divider = true) { state.markIntroEnd(); onDismiss() }
             MenuRow(stringResource(R.string.menu_set_outro_start)) { state.markOutroStart(); onDismiss() }

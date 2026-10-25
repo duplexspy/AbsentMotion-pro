@@ -76,6 +76,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.absentmotion.ai.CaptionModel
 import app.absentmotion.media.VideoProxies
+import app.absentmotion.pro.PreRenderStorage
+import app.absentmotion.pro.ProFeatures
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import app.absentmotion.library.AppSettings
@@ -150,6 +152,10 @@ fun SettingsDrawer(settings: AppSettings, drawer: androidx.compose.material3.Dra
                 Divider(10.dp)
                 SwitchRow(stringResource(R.string.settings_preview_copies), settings.previewCopies, enabled = true) { settings.previewCopies = it }
                 PreviewCopiesRow()
+                if (ProFeatures.isEnabled(ProFeatures.preRender)) {
+                    Divider(10.dp)
+                    PreviewCacheRows(settings)
+                }
             }
             Category(R.string.settings_group_projects, HomeIcons.Folder) {
                 SwitchRow(stringResource(R.string.settings_open_xml), settings.xmlUpload, enabled = true) { settings.xmlUpload = it }
@@ -238,6 +244,26 @@ private fun PreviewCopiesRow() {
     var bytes by remember { mutableLongStateOf(0L) }
     LaunchedEffect(made) { bytes = withContext(Dispatchers.IO) { VideoProxies.bytes(context) } }
     ActionRow(stringResource(R.string.settings_clear_preview_copies), formatBytes(bytes), chevron = false) { VideoProxies.clear(context) }
+}
+
+@Composable
+private fun PreviewCacheRows(settings: AppSettings) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    var bytes by remember { mutableLongStateOf(0L) }
+    LaunchedEffect(Unit) {
+        bytes = withContext(Dispatchers.IO) {
+            PreRenderStorage.totalCacheBytes(context)
+        }
+    }
+    SwitchRow("Auto pre-render", settings.autoPreRender, enabled = true) { settings.autoPreRender = it }
+    SwitchRow("Use pre-render in export", settings.usePreRenderInExport, enabled = true) { settings.usePreRenderInExport = it }
+    ActionRow("Clear preview cache", "${formatBytes(bytes)} / ${settings.previewCacheLimitMb} MB", chevron = false) {
+        scope.launch(Dispatchers.IO) {
+            PreRenderStorage.clearAll(context)
+            bytes = 0L
+        }
+    }
 }
 
 @Composable

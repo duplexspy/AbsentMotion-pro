@@ -2,6 +2,8 @@ package app.absentmotion.ui.editor
 
 import app.absentmotion.model.Scene
 import app.absentmotion.model.defaultCameraId
+import app.absentmotion.pro.PreRenderManager
+import app.absentmotion.pro.ProFeatures
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.AnimationState
@@ -1040,6 +1042,12 @@ private fun DrawScope.drawTimeline(view: TimelineView, measurer: TextMeasurer, e
             layer.mediaFill?.takeIf { it.video }?.let { proxies[it.uri] }?.let { done ->
                 drawProxyProgress(rowTime.x(layer.startTime.toFloat()), rowTime.x(layer.endTime + 1f), view.shownTop(row, layer.id), done)
             }
+            if (ProFeatures.isEnabled(ProFeatures.preRender)) {
+                val cachedFrames = PreRenderManager.validityMap.getValidFrames(layer.id)
+                if (cachedFrames.isNotEmpty()) {
+                    drawPreRenderBar(cachedFrames, state.scene, rowTime, view.shownTop(row, layer.id))
+                }
+            }
         }
     }
     view.snapAt?.let { frame ->
@@ -1082,6 +1090,21 @@ private fun DrawScope.drawProxyProgress(left: Float, right: Float, top: Float, d
     val y = top + (RowHeight - BarInset).toPx() - height - ProxyLineInset.toPx()
     drawRect(Color.Black.copy(alpha = 0.35f), Offset(from, y), Size(to - from, height))
     drawRect(Am.Accent, Offset(from, y), Size((to - from) * done.coerceIn(0f, 1f), height))
+}
+
+private fun DrawScope.drawPreRenderBar(frames: Set<Int>, scene: Scene, time: TimeScale, top: Float) {
+    val barHeight = 2.5.dp.toPx()
+    val y = top + BarInset.toPx()
+    val color = Color(0xFF5FD38D)
+    for (f in frames) {
+        val startMs = scene.frameStart(f).toFloat()
+        val endMs = scene.frameEnd(f).toFloat()
+        val x0 = time.x(startMs)
+        val x1 = time.x(endMs)
+        if (x1 > 0 && x0 < size.width) {
+            drawRect(color, Offset(kotlin.math.max(x0, 0f), y), Size(kotlin.math.max(1f, x1 - x0), barHeight))
+        }
+    }
 }
 
 private fun DrawScope.drawBookmark(x: Float, outline: Path) {

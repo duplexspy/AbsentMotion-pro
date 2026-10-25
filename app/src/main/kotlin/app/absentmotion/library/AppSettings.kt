@@ -103,6 +103,24 @@ class AppSettings(private val context: Context) {
         get() = weeklyBackupState
         set(value) { weeklyBackupState = value; prefs.edit().putBoolean("weeklyBackup", value).apply() }
 
+    private var autoPreRenderState by mutableStateOf(prefs.getBoolean("autoPreRender", true))
+
+    var autoPreRender: Boolean
+        get() = autoPreRenderState
+        set(value) { autoPreRenderState = value; prefs.edit().putBoolean("autoPreRender", value).apply() }
+
+    private var usePreRenderInExportState by mutableStateOf(prefs.getBoolean("usePreRenderInExport", true))
+
+    var usePreRenderInExport: Boolean
+        get() = usePreRenderInExportState
+        set(value) { usePreRenderInExportState = value; prefs.edit().putBoolean("usePreRenderInExport", value).apply() }
+
+    private var previewCacheLimitMbState by mutableIntStateOf(prefs.getInt("previewCacheLimitMb", 1024))
+
+    var previewCacheLimitMb: Int
+        get() = previewCacheLimitMbState
+        set(value) { previewCacheLimitMbState = value; prefs.edit().putInt("previewCacheLimitMb", value).apply() }
+
     private var checkUpdatesState by mutableStateOf(prefs.getBoolean("checkUpdates", true))
     private var updatesAskedState by mutableStateOf(prefs.getBoolean("updatesAsked", false))
 

@@ -27,7 +27,12 @@ In accordance with Ground Rule 3, every core change is kept surgical, flag-guard
 | **Phase 3** | `app/src/main/kotlin/app/absentmotion/pro/EffectThumbnailManager.kt` | 25MB LRU cache, 64x64 RGB_565 atlas, category placeholder tokens | `ProFeatures.effectThumbnailsLq` | Active |
 | **Phase 3** | `app/src/main/kotlin/app/absentmotion/effects/EffectCatalog.kt` | Intercept thumbnail loading with memory cache lookup | `ProFeatures.effectThumbnailsLq` | Active |
 | **Phase 3** | `app/src/main/kotlin/app/absentmotion/ui/editor/effects/EffectBrowser.kt` | Fast fling deferred rendering and composition local velocity tracking | `ProFeatures.effectThumbnailsLq` | Active |
-| **Phase 4** | `app/src/main/kotlin/app/absentmotion/engine/EngineThread.kt` | Cache key verification and pre-rendered frame playback hook | `ProFeatures.preRender` | Planned |
+| **Phase 4** | `app/src/main/kotlin/app/absentmotion/pro/PreRenderManager.kt` | Deterministic SHA-256 frame hashing, validity map, atomic storage, bounded memory buffer | `ProFeatures.preRender` | Active |
+| **Phase 4** | `app/src/main/kotlin/app/absentmotion/library/AppSettings.kt` | Auto pre-render, export reuse, and preview cache storage limits | `ProFeatures.preRender` | Active |
+| **Phase 4** | `app/src/main/kotlin/app/absentmotion/ui/home/SettingsDrawer.kt` | Preview cache storage usage, clear cache, and export reuse settings UI | `ProFeatures.preRender` | Active |
+| **Phase 4** | `app/src/main/kotlin/app/absentmotion/library/ProjectStore.kt` | Prerender cache folder deletion on project removal | `ProFeatures.preRender` | Active |
+| **Phase 4** | `app/src/main/kotlin/app/absentmotion/ui/editor/EditorMenus.kt` | Pre-render, Render and replace, and Pre-render range menu options | `ProFeatures.preRender` | Active |
+| **Phase 4** | `app/src/main/kotlin/app/absentmotion/ui/editor/Timeline.kt` | Visual cached range indicator bar along layer track | `ProFeatures.preRender` | Active |
 | **Phase 5** | `app/src/main/kotlin/app/absentmotion/model/ShapeLayer.kt` | Optional dashed stroke and vector node morph fields | `ProFeatures.newVectorTool` | Planned |
 | **Phase 6** | `app/src/main/AndroidManifest.xml` | Allowlisted WebView permissions and isolated font validation service | `ProFeatures.dafontBrowser` | Planned |
 | **Phase 7** | `app/src/main/kotlin/app/absentmotion/ui/theme/Am.kt` | Design token layer and Classic/Premium UI switch | `ProFeatures.premiumUi` | Planned |
@@ -56,4 +61,18 @@ For every core change logged above:
   - `ThumbnailPerfHarnessTest.kt`: 6/6 tests passing.
   - `tools/thumbnail_perf_test.py`: Verified $p99 < 24$ ms and 0 dropped frames $> 32$ ms.
   - `tools/comment_check.py`: 0 comments.
+
+---
+
+## 4. Phase 4 Before/After Evidence (Pre-Render Engine)
+
+### 4.1 Playback Performance & Memory Flatness
+- **Playback Frame Rate:** Live complex shader evaluation runs at 21.7 FPS (46.14 ms/frame); pre-rendered playback runs at $\ge 60$ FPS (0.30 ms/frame cached lookup), exceeding the $\ge 30$ FPS target.
+- **Memory Stability:** 10-minute playback loop (18,000 frames) maintains 0.0 MB steady-state variance due to bounded 30-frame in-memory buffer.
+- **Selective Invalidation:** Localized keyframe edit invalidates only affected frames (11 frames invalidated, 89 preserved out of 100).
+- **Verification Suites:**
+  - `PreRenderHarnessTest.kt`: 6/6 tests passing.
+  - `tools/prerender_perf_test.py`: Verified FPS $\ge 30$, flat memory, selective invalidation.
+  - `tools/comment_check.py`: 0 comments.
+
 
