@@ -3,6 +3,7 @@ package app.absentmotion.export
 import android.media.MediaCodec
 import android.media.MediaFormat
 import android.media.MediaMuxer
+import android.os.Build
 import android.system.Os
 import app.absentmotion.R
 import app.absentmotion.i18n.txt
@@ -11,6 +12,8 @@ import java.io.FileOutputStream
 import java.nio.ByteBuffer
 
 internal interface SampleSink {
+    val negativeTimes: Boolean get() = true
+
     fun addTrack(format: MediaFormat): Int
     fun start()
     fun write(track: Int, data: ByteBuffer, info: MediaCodec.BufferInfo)
@@ -22,6 +25,8 @@ internal class MuxerSink(private val muxer: MediaMuxer) : SampleSink {
     constructor(fd: FileDescriptor, format: Int) : this(MediaMuxer(fd, format))
     constructor(path: String, format: Int = MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4) : this(MediaMuxer(path, format))
 
+    override val negativeTimes: Boolean get() = muxerTakesNegativeTimes(Build.VERSION.SDK_INT)
+
     override fun addTrack(format: MediaFormat) = muxer.addTrack(format)
     override fun start() = muxer.start()
     override fun write(track: Int, data: ByteBuffer, info: MediaCodec.BufferInfo) = muxer.writeSampleData(track, data, info)
@@ -29,7 +34,7 @@ internal class MuxerSink(private val muxer: MediaMuxer) : SampleSink {
     override fun release() = muxer.release()
 }
 
-internal class MatroskaSink(fd: FileDescriptor, private val fps: Int, webm: Boolean = false) : SampleSink {
+internal class MatroskaSink(fd: FileDescriptor, private val fps: Int, webm: Boolean = false, private val bt601: Boolean = false) : SampleSink {
     private class Sample(val data: ByteArray, val timeUs: Long, val key: Boolean)
 
     private val writer = MatroskaWriter(FileOutputStream(fd).channel, if (webm) "webm" else "matroska")
@@ -43,7 +48,7 @@ internal class MatroskaSink(fd: FileDescriptor, private val fps: Int, webm: Bool
         fun csd(i: Int) = format.getByteBuffer("csd-$i")?.let { b -> ByteArray(b.remaining()).also { b.duplicate().get(it) } }
         val nals = (0..2).mapNotNull(::csd).flatMap { NalUnits.split(it) }
         fun video(id: String, private: ByteArray?) = MatroskaWriter.Track(
-            true, id, private, format.getInteger(MediaFormat.KEY_WIDTH), format.getInteger(MediaFormat.KEY_HEIGHT), frameDurationNs(fps),
+            true, id, private, format.getInteger(MediaFormat.KEY_WIDTH), format.getInteger(MediaFormat.KEY_HEIGHT), frameDurationNs(fps), bt601 = bt601,
         )
         fun audio(id: String, private: ByteArray?, delayNs: Long = 0, preRollNs: Long = 0) = MatroskaWriter.Track(
             false, id, private, sampleRate = format.getInteger(MediaFormat.KEY_SAMPLE_RATE).toDouble(),
@@ -72,7 +77,7 @@ internal class MatroskaSink(fd: FileDescriptor, private val fps: Int, webm: Bool
         val payload = when (mimes[track]) {
             MediaFormat.MIMETYPE_VIDEO_AVC, MediaFormat.MIMETYPE_VIDEO_HEVC -> NalUnits.lengthPrefixed(bytes)
             MediaFormat.MIMETYPE_VIDEO_AV1 -> NalUnits.withoutTemporalDelimiter(bytes)
-            MediaFormat.MIMETYPE_VIDEO_VP9 -> vp9Bt709(bytes)
+            MediaFormat.MIMETYPE_VIDEO_VP9 -> vp9ColourSpace(bytes, if (bt601) Vp9Bt601 else Vp9Bt709)
             else -> bytes
         }
         val key = !tracks[track].video || info.flags and MediaCodec.BUFFER_FLAG_KEY_FRAME != 0
@@ -102,10 +107,10 @@ private fun primingFrames(format: MediaFormat): Long =
 internal fun av1Config(csd: ByteArray): ByteArray =
     if (csd.isNotEmpty() && csd[0].toInt() and 0xFF == 0x81) csd else byteArrayOf(0x81.toByte(), 0, 0x0C, 0) + csd
 
-internal fun openSink(container: Container, fd: FileDescriptor, fps: Int): SampleSink = when (container) {
+internal fun openSink(container: Container, fd: FileDescriptor, fps: Int, bt601: Boolean = false): SampleSink = when (container) {
     Container.Mp4, Container.Mov -> MuxerSink(fd, MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4)
-    Container.WebM -> MatroskaSink(fd, fps, webm = true)
-    Container.Mkv -> MatroskaSink(fd, fps)
+    Container.WebM -> MatroskaSink(fd, fps, webm = true, bt601 = bt601)
+    Container.Mkv -> MatroskaSink(fd, fps, bt601 = bt601)
 }
 
 internal fun quickTimeBrands(head: ByteArray): ByteArray? {
@@ -128,6 +133,8 @@ internal fun markQuickTime(fd: FileDescriptor) {
 }
 
 internal class Mux(private val sink: SampleSink, private val tracks: Int, private val onError: (Throwable) -> Unit) {
+    val negativeTimes: Boolean get() = sink.negativeTimes
+
     private var added = 0
     private var started = false
     private var broken = false

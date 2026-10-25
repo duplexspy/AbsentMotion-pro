@@ -638,17 +638,17 @@
     <string name="menu_reset_transform">I-reset ang transform</string>
     <string name="menu_select_all_layers">Piliin ang lahat ng layer</string>
     <plurals name="menu_duplicate_layers">
-        <item quantity="one">I-duplicate ang layer</item>
+        <item quantity="one">I-duplicate ang %1$s layer</item>
         <item quantity="other">I-duplicate ang %1$s layer</item>
     </plurals>
     <string name="menu_save_preset">I-save ang preset</string>
     <plurals name="menu_copy_layers">
-        <item quantity="one">Kopyahin ang layer</item>
+        <item quantity="one">Kopyahin ang %1$s layer</item>
         <item quantity="other">Kopyahin ang %1$s layer</item>
     </plurals>
     <string name="menu_with_its_style">(kasama ang estilo nito)</string>
     <plurals name="menu_paste_layers">
-        <item quantity="one">I-paste ang layer</item>
+        <item quantity="one">I-paste ang %1$s layer</item>
         <item quantity="other">I-paste ang %1$s layer</item>
     </plurals>
     <string name="menu_paste_style">I-paste ang estilo</string>
@@ -1148,6 +1148,7 @@
     <string name="ai_select_image_layer">Pumili ng layer ng larawan</string>
     <string name="ai_select_audio_layer">Pumili ng audio layer</string>
     <string name="ai_select_video_layer">Pumili ng layer ng bidyo</string>
+    <string name="ai_undo_newer_first">I-undo muna ang mas bagong AI</string>
     <string name="ai_cancelling">Kinakansela…</string>
     <string name="ai_preparing">Inihahanda…</string>
     <string name="ai_cancelled">Kinansela</string>
@@ -1180,6 +1181,7 @@
     <string name="ai_sample_rate_changed">Nagbago ang sample rate ng audio habang nagde-decode</string>
     <string name="ai_recording_too_large">Masyadong malaki ang rekording na ito para sa WAV</string>
     <string name="ai_no_samples_decoded">Walang na-decode na audio sample</string>
+    <string name="ai_sound_not_kept">Hindi maingatan ang tunog ng clip na ito, kaya walang nabago.</string>
     <string name="ai_mask_wrong_size">Nagbigay ng resultang maling sukat ang pag-alis ng background. Subukan muli.</string>
     <string name="ai_encoder_no_image">Walang input image na ibinigay ang video encoder</string>
     <string name="ai_encoder_not_responding">Huminto ang pagtugon ng video encoder</string>
@@ -1275,6 +1277,7 @@
     <string name="model_svg_skipped_dashed">mga putol-putol na stroke</string>
     <string name="model_svg_skipped_patterns">mga pattern fill</string>
     <string name="model_svg_skipped_gradient_colours">karagdagang kulay ng gradient (ang una at huli ang ginagamit)</string>
+    <string name="model_svg_skipped_styles">Ilang style rule (sobrang dami sa file para ilapat)</string>
     <string name="ai_no_audio_track">Walang audio track sa %1$s</string>
     <string name="shape_name_circle">Bilog</string>
     <string name="shape_name_rounded_rectangle">Bilugang parihaba</string>
@@ -1416,7 +1419,6 @@
     <string name="smooth_nothing">Sapat na ang frame ng clip na ito para sa frame rate ng proyekto. Pumili ng Motion blur, o pabagalin muna ang clip.</string>
     <string name="smooth_frame">Smoothing: frame %1$s ng %2$s…</string>
     <string name="smooth_saving">Sini-save ang smooth na clip…</string>
-    <string name="smooth_sound_format">Gumagamit ang audio ng clip na ito ng format na hindi maaaring itago, kaya hindi na-smooth ang clip.</string>
     <string name="export_list_or">%1$s o %2$s</string>
     <string name="export_list_and">%1$s at %2$s</string>
     <string name="export_reason_container_codecs">Kailangan ng %1$s ng %2$s na bidyo, na hindi kayang gawin ng teleponong ito sa %3$s.</string>
