@@ -7,6 +7,7 @@ import org.junit.Test
 import kotlin.math.abs
 import kotlin.math.exp
 import kotlin.math.ln
+import kotlin.math.max
 
 class TextTortureHarnessTest {
 
@@ -44,6 +45,33 @@ class TextTortureHarnessTest {
         return failures
     }
 
+    private fun evaluateZPerspectiveStability(
+        zSteps: List<Float>,
+        focalLength: Float = 1000f,
+        simulatedJumpIndex: Int? = null,
+        jumpFactor: Float = 1.15f,
+    ): List<Pair<Int, Float>> {
+        val failures = ArrayList<Pair<Int, Float>>()
+        var previousRatio: Float? = null
+
+        zSteps.forEachIndexed { index, z ->
+            val effectiveScale = focalLength / max(1.0f, focalLength + z)
+            val jump = if (simulatedJumpIndex != null && index >= simulatedJumpIndex) jumpFactor else 1.0f
+            val baseInkArea = 500f
+            val measuredInk = baseInkArea * (effectiveScale * effectiveScale) * jump
+            val normalizedRatio = measuredInk / (effectiveScale * effectiveScale)
+
+            previousRatio?.let { prev ->
+                val deltaPct = abs(normalizedRatio - prev) / prev * 100.0f
+                if (deltaPct > 5.0f) {
+                    failures.add(index to deltaPct)
+                }
+            }
+            previousRatio = normalizedRatio
+        }
+        return failures
+    }
+
     @Test
     fun testScaleStepsCoverage() {
         val steps = generateScaleSteps()
@@ -69,6 +97,22 @@ class TextTortureHarnessTest {
     }
 
     @Test
+    fun testZPerspectivePassesStabilityCheck() {
+        val zSteps = (0 until 30).map { -300f + it * 50f }
+        val failures = evaluateZPerspectiveStability(zSteps)
+        assertTrue(failures.isEmpty())
+    }
+
+    @Test
+    fun testZPerspectiveJumpFailsStabilityCheck() {
+        val zSteps = (0 until 30).map { -300f + it * 50f }
+        val failures = evaluateZPerspectiveStability(zSteps, simulatedJumpIndex = 10, jumpFactor = 1.14f)
+        assertFalse(failures.isEmpty())
+        assertEquals(10, failures.first().first)
+        assertTrue(failures.first().second > 5.0f)
+    }
+
+    @Test
     fun testOverhangBoundsExpansion() {
         val advanceWidth = 60.0f
         val negativeBearing = -4.5f
@@ -81,5 +125,33 @@ class TextTortureHarnessTest {
         assertTrue(totalWidth > advanceWidth)
         assertEquals(64.5f, totalWidth, 0.001f)
         assertEquals(38.0f, totalHeight, 0.001f)
+    }
+
+    @Test
+    fun testProFeaturesTextRenderFlag() {
+        assertTrue(ProFeatures.isEnabled(ProFeatures.textRenderFix))
+        val originalSafe = ProFeatures.isSafeMode
+        try {
+            ProFeatures.setSafeMode(null, true)
+            assertFalse(ProFeatures.isEnabled(ProFeatures.textRenderFix))
+        } finally {
+            ProFeatures.setSafeMode(null, originalSafe)
+        }
+    }
+
+    @Test
+    fun testPadOverhangCalculation() {
+        val lineBaseline = 32.0f
+        val layoutHeight = 40.0f
+        val fontMetricsTop = -36.0f
+        val fontMetricsBottom = 12.0f
+
+        val padTop = max(0.0f, -fontMetricsTop - lineBaseline)
+        val padBottom = max(0.0f, (lineBaseline + fontMetricsBottom) - layoutHeight)
+        val totalHeight = layoutHeight + padTop + padBottom
+
+        assertEquals(4.0f, padTop, 0.001f)
+        assertEquals(4.0f, padBottom, 0.001f)
+        assertEquals(48.0f, totalHeight, 0.001f)
     }
 }

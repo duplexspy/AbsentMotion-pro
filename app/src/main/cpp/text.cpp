@@ -29,6 +29,9 @@
 #include "unicode/uchar.h"
 
 namespace am {
+thread_local bool gTextRenderFix = true;
+void SetTextRenderFix(bool on) { gTextRenderFix = on; }
+bool TextRenderFixOn() { return gTextRenderFix; }
 using namespace skia::textlayout;
 struct TextLine {
     std::string content;
@@ -246,11 +249,6 @@ std::shared_ptr<TextLayout> ParseText(const XmlNode& n) {
     }
     return text;
 }
-SkPath TextPath(const Layer& layer, float) {
-    auto& text = *layer.text;
-    layout(text);
-    return SkPath::Rect(SkRect::MakeXYWH(-text.width / 2, -text.height / 2, text.width, text.height));
-}
 namespace {
 template <typename F> void EachParagraph(TextLayout& text, F&& at) {
     if (text.paragraph) at(*text.paragraph, -text.width / 2, -text.height / 2 + text.padTop);
@@ -289,8 +287,15 @@ void DrawRuns(SkCanvas* canvas, TextLayout& text, bool colored, const SkPaint& p
     EachParagraph(text, [&](Paragraph& paragraph, float x, float y) {
         paragraph.visit([&](int, const Paragraph::VisitorInfo* info) {
             if (!info || Colored(info->font) != colored) return;
+            SkFont font = info->font;
+            if (gTextRenderFix) {
+                font.setHinting(SkFontHinting::kNone);
+                font.setLinearMetrics(true);
+                font.setSubpixel(true);
+                font.setEdging(SkFont::Edging::kAntiAlias);
+            }
             canvas->drawGlyphs({info->glyphs, (size_t)info->count}, {info->positions, (size_t)info->count},
-                               {x + info->origin.fX, y + info->origin.fY}, info->font, paint);
+                               {x + info->origin.fX, y + info->origin.fY}, font, paint);
         });
     });
 }
@@ -299,12 +304,28 @@ const SkRect& InkBounds(TextLayout& text) {
     text.inked = true;
     text.ink = SkRect::MakeXYWH(-text.width / 2, -text.height / 2, text.width, text.height);
     EachGlyph(text, [&](const SkFont& font, SkGlyphID glyph, float x, float y) {
+        SkFont f = font;
+        if (gTextRenderFix) {
+            f.setHinting(SkFontHinting::kNone);
+            f.setLinearMetrics(true);
+            f.setSubpixel(true);
+        }
         SkRect bounds;
-        font.getBounds({&glyph, 1}, {&bounds, 1}, nullptr);
+        f.getBounds({&glyph, 1}, {&bounds, 1}, nullptr);
         text.ink.join(bounds.makeOffset(x, y));
     });
     return text.ink;
 }
+}
+SkPath TextPath(const Layer& layer, float) {
+    auto& text = *layer.text;
+    layout(text);
+    if (gTextRenderFix) {
+        SkRect bounds = InkBounds(text);
+        bounds.join(SkRect::MakeXYWH(-text.width / 2, -text.height / 2, text.width, text.height));
+        return SkPath::Rect(bounds);
+    }
+    return SkPath::Rect(SkRect::MakeXYWH(-text.width / 2, -text.height / 2, text.width, text.height));
 }
 namespace {
 const char* const kTextIds[] = {"absent.textprogress", "absent.texttransform", "absent.textrandomizer", "absent.countupdown",
@@ -562,9 +583,16 @@ void DrawGlyphs(SkCanvas* canvas, const std::vector<Glyph>& glyphs, SkColor4f co
         paint.setAlphaf(std::min(g.alpha, 1.0f));
         if (g.blur > 0.05f && colored) paint.setImageFilter(SkImageFilters::Blur(g.blur, g.blur, nullptr));
         else if (g.blur > 0.05f) paint.setMaskFilter(SkMaskFilter::MakeBlur(kNormal_SkBlurStyle, g.blur));
+        SkFont font = g.font;
+        if (gTextRenderFix) {
+            font.setHinting(SkFontHinting::kNone);
+            font.setLinearMetrics(true);
+            font.setSubpixel(true);
+            font.setEdging(SkFont::Edging::kAntiAlias);
+        }
         canvas->save();
         canvas->concat(g.matrix);
-        canvas->drawGlyphs({&g.id, 1}, {&g.at, 1}, {0, 0}, g.font, paint);
+        canvas->drawGlyphs({&g.id, 1}, {&g.at, 1}, {0, 0}, font, paint);
         canvas->restore();
     }
     if (opacity < 1) canvas->restore();
@@ -585,13 +613,25 @@ SkPath TextGlyphPath(const Layer& layer, float t, int fps) {
             if (!(g.alpha > 0.002f) || Colored(g.font)) continue;
             SkMatrix m = SkMatrix::Translate(g.at.fX, g.at.fY);
             m.postConcat(g.matrix);
-            if (auto path = g.font.getPath(g.id)) b.addPath(*path, m);
+            SkFont font = g.font;
+            if (gTextRenderFix) {
+                font.setHinting(SkFontHinting::kNone);
+                font.setLinearMetrics(true);
+                font.setSubpixel(true);
+            }
+            if (auto path = font.getPath(g.id)) b.addPath(*path, m);
         }
         return b.detach();
     }
     EachGlyph(text, [&](const SkFont& font, SkGlyphID glyph, float x, float y) {
         if (Colored(font)) return;
-        if (auto path = font.getPath(glyph)) b.addPath(*path, SkMatrix::Translate(x, y));
+        SkFont f = font;
+        if (gTextRenderFix) {
+            f.setHinting(SkFontHinting::kNone);
+            f.setLinearMetrics(true);
+            f.setSubpixel(true);
+        }
+        if (auto path = f.getPath(glyph)) b.addPath(*path, SkMatrix::Translate(x, y));
     });
     return b.detach();
 }
@@ -599,6 +639,11 @@ void DrawText(SkCanvas* canvas, const Layer& layer, float t, const SkPaint& pain
     auto& text = *layer.text;
     layout(text);
     if (TextAnimated(layer)) return DrawGlyphs(canvas, Animate(layer, t, fps), paint.getColor4f(), part);
+    if (gTextRenderFix) {
+        if (part != TextPart::kColor) DrawRuns(canvas, text, false, paint);
+        if (part != TextPart::kPlain) DrawRuns(canvas, text, true, paint);
+        return;
+    }
     if (part != TextPart::kColor) {
         SkPaint tint;
         tint.setColorFilter(SkColorFilters::Blend(paint.getColor4f(), nullptr, SkBlendMode::kSrcIn));
