@@ -37,6 +37,7 @@ import app.absentmotion.editor.EditorState
 import app.absentmotion.editor.FreehandMode
 import app.absentmotion.editor.PointMode
 import app.absentmotion.editor.TrackMode
+import app.absentmotion.editor.VectorToolMode
 import app.absentmotion.editor.leaveDrawing
 import app.absentmotion.editor.shapeKeyFrames
 import app.absentmotion.editor.toggleShapeKey
@@ -77,6 +78,7 @@ internal fun DrawingEditor(state: EditorState) {
         Box(Modifier.fillMaxWidth().weight(1f)) {
             Preview(state, Modifier.fillMaxSize())
             when (mode) {
+                is VectorToolMode -> app.absentmotion.pro.VectorToolOverlay(state, mode, Modifier.fillMaxSize())
                 is FreehandMode -> FreehandOverlay(state, mode, Modifier.fillMaxSize())
                 is PointMode -> PointOverlay(state, mode, Modifier.fillMaxSize())
                 is TrackMode -> TrackOverlay(state, mode, Modifier.fillMaxSize())
@@ -85,6 +87,7 @@ internal fun DrawingEditor(state: EditorState) {
         if (mode !is FreehandMode) DrawingTimeBar(state, mode, Modifier.fillMaxWidth().height(40.dp))
         Box(Modifier.fillMaxWidth().height(200.dp).enterFade().background(Am.Panel).pointerInput(Unit) {}) {
             when (mode) {
+                is VectorToolMode -> app.absentmotion.pro.VectorToolPanel(state, mode)
                 is FreehandMode -> FreehandPanel(mode)
                 is PointMode -> PointPanel(state, mode)
                 is TrackMode -> TrackPanel(state, mode)
@@ -99,7 +102,7 @@ private fun DrawingBar(state: EditorState, mode: DrawingMode, modifier: Modifier
     Row(modifier.background(Bar), verticalAlignment = Alignment.CenterVertically) {
         BarButton(ChromeIcons.Back, stringResource(R.string.draw_back), cell) { state.leaveDrawing() }
         Text(
-            stringResource(
+            if (mode is VectorToolMode) "Vector Tool" else stringResource(
                 when { mode is TrackMode -> R.string.draw_title_track_motion; mode is PointMode && mode.vector -> R.string.add_quick_pen_tool; mode is PointMode -> R.string.draw_title_edit_points; else -> R.string.add_quick_freehand_brush },
             ),
             Modifier.weight(1f), color = Am.OnDark, fontSize = 15.sp, maxLines = 1,
@@ -107,6 +110,9 @@ private fun DrawingBar(state: EditorState, mode: DrawingMode, modifier: Modifier
         val busy = (mode as? TrackMode)?.running == true
         BarButton(ChromeIcons.Undo, stringResource(R.string.draw_undo), cell, enabled = state.canUndo && !busy) { state.undo() }
         BarButton(ChromeIcons.Redo, stringResource(R.string.draw_redo), cell, enabled = state.canRedo && !busy) { state.redo() }
+        if (mode is VectorToolMode) {
+            BarButton(PanelIcons.Check, "Done", cell) { state.leaveDrawing() }
+        }
     }
 }
 

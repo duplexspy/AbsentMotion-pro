@@ -59,6 +59,7 @@ import app.absentmotion.editor.EditorState
 import app.absentmotion.editor.KeypadRequest
 import app.absentmotion.editor.editDrawing
 import app.absentmotion.editor.editPoints
+import app.absentmotion.editor.editVectorTool
 import app.absentmotion.editor.moveClipEdges
 import app.absentmotion.editor.split
 import app.absentmotion.editor.stepBack
@@ -149,7 +150,7 @@ fun LayerTools(state: EditorState, modifier: Modifier = Modifier, side: Boolean 
                     kind == "text" -> Tile(EditText) { state.panel = EditorPanel.EditText }
                     kind == "embedScene" -> if (state.selected?.link != null) Tile(ElementPropsButton) { properties = true } else null
                     kind == "drawing" -> Tile(EditDrawing) { state.editDrawing() }
-                    drawn -> Tile(EditPoints, enabled = state.selected?.contours != null) { state.editPoints() }
+                    drawn -> Tile(EditPoints, enabled = state.selected?.contours != null) { state.editVectorTool() }
                     else -> Tile(EditShape) { state.panel = EditorPanel.EditShape }
                 }
                 listOf(

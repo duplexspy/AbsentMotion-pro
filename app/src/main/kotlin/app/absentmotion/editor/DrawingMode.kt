@@ -117,10 +117,30 @@ fun EditorState.startVectorDrawing() {
     enter(layer, PointMode(layer.id, created = true, vector = true).apply { point = -1; handle = Handle.Add }, created = true)
 }
 
+fun EditorState.startVectorTool() {
+    if (!app.absentmotion.pro.ProFeatures.isEnabled(app.absentmotion.pro.ProFeatures.newVectorTool)) {
+        startVectorDrawing()
+        return
+    }
+    val colour = Color.rgb(Random.nextInt(200) + 55, Random.nextInt(200) + 55, Random.nextInt(200) + 55)
+    val layer = newLayer(AppText.get(R.string.shape_name_shape), "shape", "color", colour, listOf(XmlNode("path", mapOf("d" to ""))))
+    enter(layer, VectorToolMode(layer.id, created = true), created = true)
+}
+
 fun EditorState.editPoints() {
     val layer = selected ?: return
     val contours = layer.contours ?: return
     enter(layer, PointMode(layer.id, created = false, vector = false).apply { if (contours.none { it.knots.isNotEmpty() }) { point = -1; handle = Handle.Add } }, created = false)
+}
+
+fun EditorState.editVectorTool() {
+    if (!app.absentmotion.pro.ProFeatures.isEnabled(app.absentmotion.pro.ProFeatures.newVectorTool)) {
+        editPoints()
+        return
+    }
+    val layer = selected ?: return
+    val contours = layer.contours ?: return
+    enter(layer, VectorToolMode(layer.id, created = false), created = false)
 }
 
 fun EditorState.leaveDrawing() {
@@ -131,6 +151,7 @@ fun EditorState.leaveDrawing() {
     val empty = when (mode) {
         is FreehandMode -> layer?.strokes.isNullOrEmpty()
         is PointMode -> layer?.contours?.all { it.knots.isEmpty() } == true
+        is VectorToolMode -> layer?.contours?.all { it.knots.isEmpty() } == true
         is TrackMode -> false
     }
     if (mode.created && empty && layer != null) {

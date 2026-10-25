@@ -6,9 +6,9 @@
 | **Phase 1** | Export Black-Line Fix (Encoder alignment, viewport rounding, edge clamp, odd dimensions) | `feature/phase1-export-edge-fix` | **Completed** | `ExportEdgeTest` matrix | Pass |
 | **Phase 2A**| Text Rendering Fix: Scale & Z Artifacts (Subpixel antialiasing, stem stability, overhang bounds) | `feature/phase2a-text-scale-z` | **Completed** | `TextTortureTest` | Pass |
 | **Phase 2B**| Text Blurry After Grouping (Effective scale propagation, isolated pass bypass, sharpness audit) | `feature/phase2b-group-sharpness` | **Completed** | `GroupSharpnessTest` | Pass |
-| **Phase 3** | Effect Thumbnails Without Lag (Pre-packed LQ atlas, LRU cache, RGB_565, fast fling deferral) | `feature/phase3-fast-thumbnails` | Planned | `ThumbnailPerfTest` | Pending |
-| **Phase 4** | Pre-Render for Heavy Layers & Ranges (Non-destructive cache key, invalidation map, video/WebP intermediate) | `feature/phase4-prerender` | Planned | `PreRenderInvalidationTest` | Pending |
-| **Phase 5** | New Vector Tool & Dashed Lines (Touch-first pen/nodes, loupe, keyframable dash/gap, SVG I/O) | `feature/phase5-vector-tool` | Planned | `VectorGeometryFuzzTest` | Pending |
+| **Phase 3** | Effect Thumbnails Without Lag (Pre-packed LQ atlas, LRU cache, RGB_565, fast fling deferral) | `feature/phase3-fast-thumbnails` | **Completed** | `ThumbnailPerfTest` | Pass |
+| **Phase 4** | Pre-Render for Heavy Layers & Ranges (Non-destructive cache key, invalidation map, video/WebP intermediate) | `feature/phase4-prerender` | **Completed** | `PreRenderInvalidationTest` | Pass |
+| **Phase 5** | New Vector Tool & Dashed Lines (Touch-first pen/nodes, loupe, keyframable dash/gap, SVG I/O) | `feature/phase5-vector-tool` | **Completed** | `VectorToolHarnessTest` | Pass |
 | **Phase 6** | DaFont Browser & Secure Importer (Hardened allowlisted WebView, isolated `:fontcheck` service) | `feature/phase6-dafont-browser` | Planned | `FontSecurityAndImportTest` | Pending |
 | **Phase 7** | Premium UI Polish (Design tokens, Classic/Premium switch, polished touch targets & sheets) | `feature/phase7-premium-ui` | Planned | UI Contrast & Regression Goldens | Pending |
 
@@ -115,3 +115,24 @@
 - [x] Run unit tests and regression checks (`testProDebugUnitTest --tests "app.absentmotion.pro.PreRenderHarnessTest"`, `bug_regression_check.py`).
 - [x] Build Pro debug APK (`assembleProDebug`).
 - [x] Commit Phase 4 to branch `feature/phase4-prerender`.
+
+---
+
+## Phase 5 Execution Checklist
+- [x] Investigate touch ergonomics, occlusion, snapping, dashed line styling, and path morphing.
+- [x] Create `docs/VECTOR_TOOL_REPORT.md` documenting math, algorithms, and performance benchmarks.
+- [x] Update `docs/CORE_TOUCHPOINTS.md` with touched files and guard flag `ProFeatures.newVectorTool`.
+- [x] Implement `VectorToolModel.kt` with knot classification, shape primitives (rect, roundrect, ellipse, polygon, star, line), knife cutting, contour joining, snapping engine, dash auto-fit, and SVG I/O.
+- [x] Implement `VectorToolMode.kt` with interactive editing state, subtool dispatch (`Pen`, `Node`, `Shapes`, `Knife`, `Join`), magnifier loupe geometry, and snapping settings.
+- [x] Implement `VectorToolActions.kt` with undoable mutations, subpixel nudge, clipboard SVG transfer, and stroke dash persistence.
+- [x] Implement `VectorToolEditor.kt` with touch-first Compose Canvas overlay, high-contrast path rendering, floating magnifier loupe, and compact control panel.
+- [x] Implement `VectorToolIcons.kt` with dedicated vector iconography.
+- [x] Update `Styling.kt` with `StrokeStyle` dashed line parameters (`dash`, `dashOffset`, `dashAutoFit`, `taperStart`, `taperEnd`).
+- [x] Update `DrawingMode.kt` with `startVectorTool()` and `editVectorTool()`, guarded behind `ProFeatures.newVectorTool`.
+- [x] Update `DrawingEditor.kt` with `VectorToolOverlay` and `VectorToolPanel`.
+- [x] Update `AddPopup.kt` and `LayerTools.kt` to route to Pro vector toolchain.
+- [x] Create `tools/vector_tool_perf_test.py` benchmark verifying p99 touch latency $< 16\text{ ms}$.
+- [x] Create `VectorToolHarnessTest.kt` unit test suite covering shape generation, knot classification, knife cut, contour join, dashed line auto-fit, knot resampling, snapping, SVG round-trip, and Safe Mode reversion.
+- [x] Run unit tests and regression checks (`testProDebugUnitTest --tests "app.absentmotion.pro.VectorToolHarnessTest"`, `bug_regression_check.py`).
+- [x] Build Pro debug APK (`assembleProDebug`).
+- [x] Commit Phase 5 to branch `feature/phase5-vector-tool`.

@@ -102,13 +102,17 @@ fun Layer.withShadowEnabled(on: Boolean): Layer {
 }
 
 data class StrokeStyle(val present: Boolean, val enabled: Boolean, val color: Int, val width: Float, val cap: String, val join: String,
-                       val start: String, val end: String, val endSize: Float)
+                       val start: String, val end: String, val endSize: Float,
+                       val dash: String? = null, val dashOffset: Float = 0f, val dashAutoFit: Boolean = false,
+                       val taperStart: Float = 0f, val taperEnd: Float = 0f)
 
 val Layer.stroke: StrokeStyle
     get() {
         val s = node.child("path-stroke")
         return StrokeStyle(s != null, s != null && s["enabled"] != "false", colour("path-stroke/color", StyleColors.Black), number("path-stroke/size", 4f),
-            s?.get("cap") ?: "round", s?.get("join") ?: "bevel", s?.get("start") ?: "none", s?.get("end") ?: "none", s?.get("end-size")?.finiteFloat() ?: 1f)
+            s?.get("cap") ?: "round", s?.get("join") ?: "bevel", s?.get("start") ?: "none", s?.get("end") ?: "none", s?.get("end-size")?.finiteFloat() ?: 1f,
+            s?.get("dash"), s?.get("dashOffset")?.finiteFloat() ?: 0f, s?.get("dashAutoFit") == "true",
+            s?.get("taperStart")?.finiteFloat() ?: 0f, s?.get("taperEnd")?.finiteFloat() ?: 0f)
     }
 
 fun Layer.withStrokeEnabled(on: Boolean): Layer {
@@ -122,6 +126,16 @@ fun Layer.withStrokeEnabled(on: Boolean): Layer {
 
 fun Layer.withStrokeAttr(key: String, value: String): Layer =
     node.child("path-stroke")?.let { copy(node = node.withChild("path-stroke", it.with(key, value))) } ?: this
+
+fun Layer.withStrokeDash(dash: String?, offset: Float, autoFit: Boolean, taperStart: Float = 0f, taperEnd: Float = 0f): Layer {
+    var layer = if (node.child("path-stroke") == null) withStrokeEnabled(true) else this
+    layer = layer.withStrokeAttr("dash", dash ?: "")
+    layer = layer.withStrokeAttr("dashOffset", formatNumber(offset))
+    layer = layer.withStrokeAttr("dashAutoFit", if (autoFit) "true" else "false")
+    layer = layer.withStrokeAttr("taperStart", formatNumber(taperStart))
+    layer = layer.withStrokeAttr("taperEnd", formatNumber(taperEnd))
+    return layer
+}
 
 val Layer.blend: String get() = node["blending"] ?: "normal"
 

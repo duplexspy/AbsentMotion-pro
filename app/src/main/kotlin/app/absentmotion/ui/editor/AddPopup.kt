@@ -66,6 +66,7 @@ import app.absentmotion.editor.addShape
 import app.absentmotion.editor.addText
 import app.absentmotion.editor.startFreehand
 import app.absentmotion.editor.startVectorDrawing
+import app.absentmotion.editor.startVectorTool
 import app.absentmotion.model.ShapeCatalog
 import app.absentmotion.ui.theme.Am
 import app.absentmotion.ui.theme.Swap
@@ -213,7 +214,7 @@ private fun QuickBar(state: EditorState, modifier: Modifier) {
     var captions by remember { mutableStateOf(false) }
     Column(modifier) {
         QuickItem(R.string.add_quick_freehand_brush, ChromeIcons.Freehand, height = 61.dp, iconTop = 7.dp, labelTop = 35.dp, onClick = { state.startFreehand() })
-        QuickItem(R.string.add_quick_pen_tool, ChromeIcons.VectorDrawing, height = 61.dp, iconTop = 6.5.dp, labelTop = 35.dp, onClick = { state.startVectorDrawing() })
+        QuickItem(R.string.add_quick_pen_tool, ChromeIcons.VectorDrawing, height = 61.dp, iconTop = 6.5.dp, labelTop = 35.dp, onClick = { state.startVectorTool() })
         QuickItem(R.string.add_quick_text, ChromeIcons.TextTool, height = 48.dp, iconTop = 4.dp, labelTop = 31.dp, onClick = { state.addText() })
         QuickItem(R.string.add_quick_captions, ChromeIcons.Captions, height = 48.dp, iconTop = 4.dp, labelTop = 31.dp, onClick = { captions = true })
         BarButton(ChromeIcons.CloseThick, stringResource(R.string.action_close), Modifier.fillMaxWidth().weight(1f)) { state.addOpen = false }

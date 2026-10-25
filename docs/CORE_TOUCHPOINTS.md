@@ -33,7 +33,13 @@ In accordance with Ground Rule 3, every core change is kept surgical, flag-guard
 | **Phase 4** | `app/src/main/kotlin/app/absentmotion/library/ProjectStore.kt` | Prerender cache folder deletion on project removal | `ProFeatures.preRender` | Active |
 | **Phase 4** | `app/src/main/kotlin/app/absentmotion/ui/editor/EditorMenus.kt` | Pre-render, Render and replace, and Pre-render range menu options | `ProFeatures.preRender` | Active |
 | **Phase 4** | `app/src/main/kotlin/app/absentmotion/ui/editor/Timeline.kt` | Visual cached range indicator bar along layer track | `ProFeatures.preRender` | Active |
-| **Phase 5** | `app/src/main/kotlin/app/absentmotion/model/ShapeLayer.kt` | Optional dashed stroke and vector node morph fields | `ProFeatures.newVectorTool` | Planned |
+| **Phase 5** | `app/src/main/kotlin/app/absentmotion/pro/VectorToolModel.kt` | Vector primitives, knot types, knife cutting, join, snapping, dash auto-fit, SVG I/O | `ProFeatures.newVectorTool` | Active |
+| **Phase 5** | `app/src/main/kotlin/app/absentmotion/editor/VectorToolMode.kt` | Interactive editing state, loupe geometry, snapping parameters | `ProFeatures.newVectorTool` | Active |
+| **Phase 5** | `app/src/main/kotlin/app/absentmotion/pro/VectorToolActions.kt` | Undoable state mutations, subpixel nudge, clipboard SVG transfer | `ProFeatures.newVectorTool` | Active |
+| **Phase 5** | `app/src/main/kotlin/app/absentmotion/pro/VectorToolEditor.kt` | Touch-first Compose Canvas overlay, high-contrast path rendering, magnifier loupe | `ProFeatures.newVectorTool` | Active |
+| **Phase 5** | `app/src/main/kotlin/app/absentmotion/model/Styling.kt` | Extended StrokeStyle with dash, dashOffset, dashAutoFit, taperStart, taperEnd | `ProFeatures.newVectorTool` | Active |
+| **Phase 5** | `app/src/main/kotlin/app/absentmotion/editor/DrawingMode.kt` | Entry points startVectorTool() and editVectorTool() | `ProFeatures.newVectorTool` | Active |
+| **Phase 5** | `app/src/main/kotlin/app/absentmotion/ui/editor/DrawingEditor.kt` | Integrated VectorToolOverlay and VectorToolPanel | `ProFeatures.newVectorTool` | Active |
 | **Phase 6** | `app/src/main/AndroidManifest.xml` | Allowlisted WebView permissions and isolated font validation service | `ProFeatures.dafontBrowser` | Planned |
 | **Phase 7** | `app/src/main/kotlin/app/absentmotion/ui/theme/Am.kt` | Design token layer and Classic/Premium UI switch | `ProFeatures.premiumUi` | Planned |
 
