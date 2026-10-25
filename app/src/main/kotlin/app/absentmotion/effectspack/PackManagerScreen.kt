@@ -14,15 +14,18 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -45,6 +48,7 @@ import app.absentmotion.platform.LocalContext
 import app.absentmotion.platform.Toast
 import app.absentmotion.platform.rememberDocumentPicker
 import app.absentmotion.platform.sheetDialogProperties
+import app.absentmotion.pro.EffectsPackStudio
 import app.absentmotion.ui.editor.ChromeIcons
 import app.absentmotion.ui.editor.PanelIcons
 import app.absentmotion.ui.editor.PhoneScreen
@@ -66,8 +70,17 @@ fun PackManagerScreen(onClose: () -> Unit) {
     val packs by PackCatalog.packs.collectAsState()
     var deletingPack by remember { mutableStateOf<InstalledPack?>(null) }
     var importStatus by remember { mutableStateOf<String?>(null) }
+    var addDialog by remember { mutableStateOf(false) }
+    var studioOpen by remember { mutableStateOf(false) }
 
-    val picker = rememberDocumentPicker { uri ->
+    LaunchedEffect(Unit) {
+        withContext(Dispatchers.IO) {
+            PackStore.installBundledPacks(context)
+            PackCatalog.refresh(context)
+        }
+    }
+
+    val packPicker = rememberDocumentPicker { uri ->
         if (uri != null) {
             scope.launch {
                 val res = withContext(Dispatchers.IO) {
@@ -92,16 +105,44 @@ fun PackManagerScreen(onClose: () -> Unit) {
         }
     }
 
+    val singlePicker = rememberDocumentPicker { uri ->
+        if (uri != null) {
+            scope.launch {
+                val res = withContext(Dispatchers.IO) {
+                    runCatching {
+                        val cr = context.contentResolver
+                        val bytes = cr.openInputStream(uri)?.use { it.readBytes() } ?: return@runCatching null
+                        val text = bytes.toString(Charsets.UTF_8).removePrefix("\uFEFF")
+                        PackStore.importSingleXml(context, text)
+                    }.getOrNull()
+                }
+                if (res != null) {
+                    PackCatalog.refresh(context)
+                    importStatus = "Installed single effect: ${res.name}"
+                } else {
+                    Toast.makeText(context, "Invalid single effect XML", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+    }
+
+    if (studioOpen) {
+        EffectsPackStudio(onClose = {
+            studioOpen = false
+            PackCatalog.refresh(context)
+        })
+    }
+
     Dialog(onClose, sheetDialogProperties()) {
         PhoneScreen {
             DialogStatusBarIcons(darkIcons = Am.Card.luminance() > 0.5f)
             Box(Modifier.fillMaxSize().background(Am.SheetBg)) {
-                Column(Modifier.fillMaxSize().navigationBarsPadding()) {
+                Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
                     Row(
-                        Modifier.fillMaxWidth().height(48.dp).padding(horizontal = 4.dp),
+                        Modifier.fillMaxWidth().height(56.dp).padding(horizontal = 8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Box(Modifier.size(44.dp).clickable(onClick = onClose), contentAlignment = Alignment.Center) {
+                        Box(Modifier.size(48.dp).clip(CircleShape).clickable(onClick = onClose), contentAlignment = Alignment.Center) {
                             Icon(HomeIcons.Close, stringResource(R.string.action_close), Modifier.size(24.dp), tint = Am.Navy)
                         }
                         Text(
@@ -112,21 +153,57 @@ fun PackManagerScreen(onClose: () -> Unit) {
                             fontWeight = FontWeight.Bold
                         )
                         Box(
-                            Modifier.size(44.dp).clickable { picker.launch() },
+                            Modifier.size(48.dp).clip(CircleShape).clickable { addDialog = true },
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(EffectIcons.Add, stringResource(R.string.effects_pack_import), Modifier.size(24.dp), tint = Am.Navy)
                         }
                     }
 
+                    Row(
+                        Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Box(
+                            Modifier.weight(1f).clip(RoundedCornerShape(8.dp)).background(Am.Card)
+                                .clickable { packPicker.launch() }.padding(vertical = 10.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text("+ Pack (.zip)", color = Am.Accent, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        }
+                        Box(
+                            Modifier.weight(1f).clip(RoundedCornerShape(8.dp)).background(Am.Card)
+                                .clickable { singlePicker.launch() }.padding(vertical = 10.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text("+ Single (.xml)", color = Am.Accent, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        }
+                        Box(
+                            Modifier.weight(1f).clip(RoundedCornerShape(8.dp)).background(Am.Card)
+                                .clickable { studioOpen = true }.padding(vertical = 10.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text("+ Studio", color = Am.Accent, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+
                     if (packs.isEmpty()) {
                         Box(Modifier.weight(1f).fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) {
-                            Text(
-                                stringResource(R.string.effects_pack_empty),
-                                color = Am.Navy.copy(alpha = 0.6f),
-                                fontSize = 14.sp,
-                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                            )
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text(
+                                    stringResource(R.string.effects_pack_empty),
+                                    color = Am.Navy.copy(alpha = 0.6f),
+                                    fontSize = 14.sp,
+                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                                )
+                                Spacer(Modifier.height(16.dp))
+                                Box(
+                                    Modifier.clip(RoundedCornerShape(8.dp)).background(Am.Accent)
+                                        .clickable { singlePicker.launch() }.padding(horizontal = 16.dp, vertical = 10.dp)
+                                ) {
+                                    Text("Add Single Effect (.xml)", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                                }
+                            }
                         }
                     } else {
                         LazyColumn(Modifier.weight(1f).fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
@@ -186,6 +263,60 @@ fun PackManagerScreen(onClose: () -> Unit) {
                         },
                         dismissButton = {
                             TextButton(onClick = { deletingPack = null }) {
+                                Text(stringResource(R.string.cancel), color = Am.Navy)
+                            }
+                        },
+                        containerColor = Am.Card
+                    )
+                }
+
+                if (addDialog) {
+                    AlertDialog(
+                        onDismissRequest = { addDialog = false },
+                        title = { Text(stringResource(R.string.effects_pack_import), color = Am.Navy, fontWeight = FontWeight.Bold) },
+                        text = {
+                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Box(
+                                    Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(Am.Well)
+                                        .clickable {
+                                            addDialog = false
+                                            packPicker.launch()
+                                        }.padding(12.dp)
+                                ) {
+                                    Column {
+                                        Text("Import Effects Pack", color = Am.Navy, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                                        Text("Install .effectspack or .zip pack bundle", color = Am.Navy.copy(alpha = 0.6f), fontSize = 12.sp)
+                                    }
+                                }
+                                Box(
+                                    Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(Am.Well)
+                                        .clickable {
+                                            addDialog = false
+                                            singlePicker.launch()
+                                        }.padding(12.dp)
+                                ) {
+                                    Column {
+                                        Text("Import Single Effect", color = Am.Navy, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                                        Text("Install standalone .xml shader effect", color = Am.Navy.copy(alpha = 0.6f), fontSize = 12.sp)
+                                    }
+                                }
+                                Box(
+                                    Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(Am.Well)
+                                        .clickable {
+                                            addDialog = false
+                                            studioOpen = true
+                                        }.padding(12.dp)
+                                ) {
+                                    Column {
+                                        Text("Create in Effects Studio", color = Am.Navy, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                                        Text("Write and compile a new GLSL fragment shader", color = Am.Navy.copy(alpha = 0.6f), fontSize = 12.sp)
+                                    }
+                                }
+                            }
+                        },
+                        confirmButton = {},
+                        dismissButton = {
+                            TextButton(onClick = { addDialog = false }) {
                                 Text(stringResource(R.string.cancel), color = Am.Navy)
                             }
                         },

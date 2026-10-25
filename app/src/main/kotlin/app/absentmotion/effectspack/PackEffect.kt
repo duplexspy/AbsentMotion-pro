@@ -56,11 +56,11 @@ data class PackEffect(
     val available: Boolean get() = status == "ok" && error == null
     val key: String get() = id.removePrefix("gm.custom.")
 
-    fun toEffectDefinition(thumbPath: String? = null): EffectDefinition = EffectDefinition(
+    fun toEffectDefinition(thumbPath: String? = null, packName: String? = null): EffectDefinition = EffectDefinition(
         id = id,
         key = key,
         name = name,
-        category = "packs",
+        category = "custom",
         description = description,
         params = params.mapIndexed { idx, p -> p.toEffectParam(sectionHeaders[idx]) },
         sksl = sksl,
@@ -69,6 +69,7 @@ data class PackEffect(
         presets = emptyList(),
         customThumb = thumbPath ?: thumbRef,
         group = group,
+        packName = packName,
     )
 
     fun instance(): XmlNode = XmlNode(

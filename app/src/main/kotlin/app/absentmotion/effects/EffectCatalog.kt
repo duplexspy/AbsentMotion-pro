@@ -10,7 +10,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.io.InputStream
 
-val EffectCategories: List<Pair<String, String>> = EffectCatalog.Categories.toList() + ("ai" to "AI") + ("packs" to "Packs")
+val EffectCategories: List<Pair<String, String>> = EffectCatalog.Categories.toList() + ("ai" to "AI") + ("custom" to "Custom Effects")
 
 data class EffectCatalog(
     val definitions: List<EffectDefinition> = emptyList(),
@@ -24,7 +24,11 @@ data class EffectCatalog(
     fun isNew(effect: EffectDefinition): Boolean = effect.since in newest
 
     fun listed(category: String? = null): List<EffectDefinition> =
-        definitions.filter { category == null || it.category == category || (category == "new" && isNew(it)) }
+        definitions.filter {
+            category == null || it.category == category ||
+            ((category == "custom" || category == "packs") && (it.category == "custom" || it.category == "packs")) ||
+            (category == "new" && isNew(it))
+        }
 
     fun search(query: String): List<EffectDefinition> {
         val byName = definitions.filter { matchesSearch(query, it.name) }.sortedBy { it.name.lowercase() }

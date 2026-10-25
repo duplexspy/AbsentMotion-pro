@@ -35,11 +35,27 @@ object PackCatalog {
         return result
     }
 
+    fun activeEffectsWithPack(context: Context): List<Pair<InstalledPack, PackEffect>> {
+        val installed = PackStore.listPacks(context).filter { it.enabled }
+        val seen = HashSet<String>()
+        val result = ArrayList<Pair<InstalledPack, PackEffect>>()
+        for (p in installed) {
+            for (eff in p.effects) {
+                if (seen.add(eff.id)) {
+                    result += p to eff
+                }
+            }
+        }
+        return result
+    }
+
     fun mergeInto(base: EffectCatalog, context: Context): EffectCatalog {
-        val effects = activeEffects(context)
+        val effects = activeEffectsWithPack(context)
         if (effects.isEmpty()) return base
 
-        val adaptedDefs = effects.map { it.toEffectDefinition(it.thumbRef) }
+        val adaptedDefs = effects.map { (pack, eff) ->
+            eff.toEffectDefinition(eff.thumbRef, pack.manifest.name.ifBlank { "Custom Effects" })
+        }
         val allDefs = base.definitions + adaptedDefs
 
         val baseOpen = base.open

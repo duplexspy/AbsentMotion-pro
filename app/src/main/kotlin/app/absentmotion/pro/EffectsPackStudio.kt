@@ -15,8 +15,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
@@ -135,12 +137,12 @@ fun EffectsPackStudio(onClose: () -> Unit) {
         PhoneScreen {
             DialogStatusBarIcons(darkIcons = Am.Card.luminance() > 0.5f)
             Box(Modifier.fillMaxSize().background(Am.SheetBg)) {
-                Column(Modifier.fillMaxSize().navigationBarsPadding()) {
+                Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
                     Row(
-                        Modifier.fillMaxWidth().height(48.dp).padding(horizontal = 4.dp),
+                        Modifier.fillMaxWidth().height(56.dp).padding(horizontal = 8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Box(Modifier.size(44.dp).clickable(onClick = onClose), contentAlignment = Alignment.Center) {
+                        Box(Modifier.size(48.dp).clip(CircleShape).clickable(onClick = onClose), contentAlignment = Alignment.Center) {
                             Icon(HomeIcons.Close, stringResource(R.string.action_close), Modifier.size(24.dp), tint = Am.Navy)
                         }
                         Text(
@@ -151,14 +153,16 @@ fun EffectsPackStudio(onClose: () -> Unit) {
                             fontWeight = FontWeight.Bold
                         )
                         Box(
-                            Modifier.clickable {
-                                val xml = buildXml()
-                                PackStore.importSingleXml(context, xml)
-                                PackCatalog.refresh(context)
-                                Toast.makeText(context, "Added $effectName to Custom Effects", Toast.LENGTH_SHORT).show()
-                            }.padding(horizontal = 12.dp, vertical = 6.dp)
+                            Modifier.clip(RoundedCornerShape(8.dp)).background(Am.Accent)
+                                .clickable {
+                                    val xml = buildXml()
+                                    PackStore.importSingleXml(context, xml)
+                                    PackCatalog.refresh(context)
+                                    Toast.makeText(context, "Added $effectName to Custom Effects", Toast.LENGTH_SHORT).show()
+                                    onClose()
+                                }.padding(horizontal = 14.dp, vertical = 8.dp)
                         ) {
-                            Text("Install", color = Am.Accent, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                            Text("Install", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
                         }
                     }
 

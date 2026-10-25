@@ -81,6 +81,7 @@ data class EffectDefinition(
     val presets: List<EffectPreset> = emptyList(),
     val customThumb: String? = null,
     val group: String? = null,
+    val packName: String? = null,
 ) {
     val available: Boolean get() = status == "ok"
     val thumbnail: String get() = customThumb ?: "thumb/$key.webp"

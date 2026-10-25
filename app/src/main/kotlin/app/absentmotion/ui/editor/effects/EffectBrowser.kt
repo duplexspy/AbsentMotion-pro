@@ -19,8 +19,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -57,6 +59,10 @@ import app.absentmotion.editor.EditorState
 import app.absentmotion.effects.EffectCatalog
 import app.absentmotion.effects.EffectDefinition
 import app.absentmotion.effects.EffectPreset
+import app.absentmotion.effectspack.PackCatalog
+import app.absentmotion.effectspack.PackStore
+import app.absentmotion.platform.rememberDocumentPicker
+import app.absentmotion.pro.EffectsPackStudio
 import app.absentmotion.model.addEffect
 import app.absentmotion.model.effects
 import app.absentmotion.ui.editor.PanelIcons
@@ -70,6 +76,7 @@ import app.absentmotion.ui.theme.pressScale
 import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import androidx.compose.ui.res.stringResource
 import app.absentmotion.R
@@ -92,6 +99,46 @@ fun EffectBrowser(state: EditorState) {
     var helpPage by remember { mutableStateOf<String?>(null) }
     var query by remember { mutableStateOf("") }
     var detail by remember { mutableStateOf(state.effectDetail?.let(catalog::find)) }
+    var studioOpen by remember { mutableStateOf(false) }
+    var addMenuOpen by remember { mutableStateOf(false) }
+
+    val packPicker = rememberDocumentPicker { uri ->
+        if (uri != null) {
+            scope.launch {
+                val res = withContext(Dispatchers.IO) {
+                    runCatching {
+                        val cr = context.contentResolver
+                        val bytes = cr.openInputStream(uri)?.use { it.readBytes() } ?: return@runCatching null
+                        PackStore.importZip(context, bytes.inputStream())
+                    }.getOrNull()
+                }
+                if (res != null) {
+                    PackCatalog.refresh(context)
+                    state.engine.reloadEffects()
+                }
+            }
+        }
+    }
+
+    val singlePicker = rememberDocumentPicker { uri ->
+        if (uri != null) {
+            scope.launch {
+                val res = withContext(Dispatchers.IO) {
+                    runCatching {
+                        val cr = context.contentResolver
+                        val bytes = cr.openInputStream(uri)?.use { it.readBytes() } ?: return@runCatching null
+                        val text = bytes.toString(Charsets.UTF_8).removePrefix("\uFEFF")
+                        PackStore.importSingleXml(context, text)
+                    }.getOrNull()
+                }
+                if (res != null) {
+                    PackCatalog.refresh(context)
+                    state.engine.reloadEffects()
+                }
+            }
+        }
+    }
+
     fun close() { state.effectDetail = null; state.effectCategory = null; state.effectBrowserOpen = false }
     var fromAudio by remember { mutableStateOf(false) }
     fun back() {
@@ -135,6 +182,7 @@ fun EffectBrowser(state: EditorState) {
     }
     val audioName = stringResource(R.string.effects_category_audio)
     val voiceName = stringResource(R.string.layer_tool_voice_filters)
+    val customName = stringResource(R.string.effects_category_packs)
     Column(Modifier.fillMaxSize().background(BrowserBg).systemBarsPadding()) {
         helpPage?.let { page -> HelpScreen(page) { helpPage = null } }
         Row(Modifier.fillMaxWidth().height(44.dp).background(BrowserBg), verticalAlignment = Alignment.CenterVertically) {
@@ -146,9 +194,15 @@ fun EffectBrowser(state: EditorState) {
                 BasicTextField(query, { query = it }, Modifier.weight(1f).padding(8.dp).focusRequester(focus), singleLine = true,
                     textStyle = TextStyle(color = Am.OnDark, fontSize = 17.sp), cursorBrush = SolidColor(Am.Accent))
             }
-            else Text(detail?.name ?: category?.let { key -> when (key) { "audio" -> audioName; "voice" -> voiceName; else -> catalog.categories.firstOrNull { it.first == key }?.second } } ?: stringResource(R.string.effectbrowser_title),
+            else Text(detail?.name ?: category?.let { key -> when (key) { "audio" -> audioName; "voice" -> voiceName; "custom", "packs" -> customName; else -> catalog.categories.firstOrNull { it.first == key }?.second } } ?: stringResource(R.string.effectbrowser_title),
                 Modifier.weight(1f), color = Am.OnDark, fontSize = 17.sp, textAlign = TextAlign.Center, maxLines = 1)
             if (audio) Spacer(Modifier.size(44.dp))
+            else if ((category == "custom" || category == "packs") && !searching && detail == null) {
+                Row {
+                    BrowserButton(EffectIcons.Add, stringResource(R.string.effects_pack_import), { addMenuOpen = true })
+                    BrowserButton(EffectIcons.Search, stringResource(R.string.home_search), { state.effectDetail = null; detail = null; searching = true })
+                }
+            }
             else BrowserButton(EffectIcons.Search, stringResource(R.string.home_search), { state.effectDetail = null; detail = null; searching = true })
         }
         Swap(listOf(detail?.id, searching, category), Modifier.fillMaxSize()) {
@@ -189,20 +243,80 @@ fun EffectBrowser(state: EditorState) {
                 else itemsIndexed(VoicePresets) { i, preset -> AudioTile(stringResource(preset.name), i, effects.any { it.kind == FxKind.Voice } || effects.fits(FxKind.Voice)) { applyVoice(preset) } }
             }
         } else if (searching || category != null) {
-            val results = if (audio) emptyList() else if (searching) catalog.search(query) else catalog.listed(category).let { list -> if (category == "packs") list else list.sortedBy { it.name.lowercase() } }
+            val isCustomCategory = (category == "custom" || category == "packs") && !searching
+            val results = if (audio) emptyList() else if (searching) catalog.search(query) else catalog.listed(category).let { list -> if (isCustomCategory) list else list.sortedBy { it.name.lowercase() } }
             val actions = if (searching || category == "ai") AiAction.entries.filter { it.offered && matchesSearch(query, stringResource(it.title)) } else emptyList()
             val presets = if (audio) emptyList() else catalog.definitions.flatMap { d -> d.presets.map { d to it } }
                 .filter { (d, p) -> if (searching) query.isNotBlank() && matchesSearch(query, p.name) else d.category == category }
             LazyVerticalGrid(GridCells.Fixed(3), Modifier.fillMaxSize(), contentPadding = PaddingValues(10.dp)) {
                 items(actions, key = { "ai-${it.name}" }) { action -> AiTile(action, state.selected, ai) }
                 items(presets, key = { (d, p) -> "preset-${d.id}-${p.slug}" }) { (d, p) -> PresetTile(catalog, d, p) { add(d, p) } }
-                if (category == "packs" && !searching) {
-                    val grouped = results.groupBy { it.group ?: "Custom" }
-                    grouped.forEach { (grp, effs) ->
-                        item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(3) }, key = "hdr-$grp") {
-                            Text(grp, Modifier.fillMaxWidth().padding(start = 6.dp, top = 12.dp, bottom = 4.dp), color = Am.Accent, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                if (isCustomCategory) {
+                    val grouped = results.groupBy { it.packName ?: it.group ?: "Custom Effects" }
+                    if (results.isEmpty()) {
+                        item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(3) }, key = "empty-custom") {
+                            Column(
+                                Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 36.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text(
+                                    stringResource(R.string.effects_pack_empty),
+                                    color = Am.OnDarkDim,
+                                    fontSize = 14.sp,
+                                    textAlign = TextAlign.Center
+                                )
+                                Spacer(Modifier.height(16.dp))
+                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Box(
+                                        Modifier.clip(RoundedCornerShape(8.dp)).background(Am.Card)
+                                            .clickable { packPicker.launch() }.padding(horizontal = 12.dp, vertical = 8.dp)
+                                    ) {
+                                        Text("+ Pack", color = Am.Accent, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                    }
+                                    Box(
+                                        Modifier.clip(RoundedCornerShape(8.dp)).background(Am.Card)
+                                            .clickable { singlePicker.launch() }.padding(horizontal = 12.dp, vertical = 8.dp)
+                                    ) {
+                                        Text("+ Single (.xml)", color = Am.Accent, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                    }
+                                    Box(
+                                        Modifier.clip(RoundedCornerShape(8.dp)).background(Am.Card)
+                                            .clickable { studioOpen = true }.padding(horizontal = 12.dp, vertical = 8.dp)
+                                    ) {
+                                        Text("+ Studio", color = Am.Accent, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                    }
+                                }
+                            }
                         }
-                        items(effs, key = { it.id }) { effect -> EffectTile(catalog, effect, 100f, { pick(effect) }, { detail = effect }, effect.id in favourites) }
+                    } else {
+                        grouped.forEach { (packName, effs) ->
+                            item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(3) }, key = "hdr-$packName") {
+                                Row(
+                                    Modifier.fillMaxWidth().padding(start = 6.dp, top = 14.dp, bottom = 6.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Box(Modifier.size(4.dp, 16.dp).background(Am.Accent, RoundedCornerShape(2.dp)))
+                                    Spacer(Modifier.width(8.dp))
+                                    Text(
+                                        packName,
+                                        Modifier.weight(1f),
+                                        color = Am.Accent,
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    Text(
+                                        "${effs.size}",
+                                        color = Am.OnDarkDim,
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                    Spacer(Modifier.width(6.dp))
+                                }
+                            }
+                            items(effs, key = { it.id }) { effect ->
+                                EffectTile(catalog, effect, 100f, { pick(effect) }, { detail = effect }, effect.id in favourites)
+                            }
+                        }
                     }
                 } else {
                     items(results, key = { it.id }) { effect -> EffectTile(catalog, effect, 100f, { pick(effect) }, { detail = effect }, effect.id in favourites) }
@@ -264,6 +378,68 @@ fun EffectBrowser(state: EditorState) {
     AiNoiseDialog(ai)
     AiEnhanceDialog(ai, state.scene) { catalog.find(QUICK_SHARPEN)?.let(::pick) }
     AiProgressDialog(ai)
+
+    if (studioOpen) {
+        EffectsPackStudio(onClose = {
+            studioOpen = false
+            PackCatalog.refresh(context)
+            state.engine.reloadEffects()
+        })
+    }
+
+    if (addMenuOpen) {
+        AlertDialog(
+            onDismissRequest = { addMenuOpen = false },
+            title = { Text(stringResource(R.string.effects_pack_import), color = Am.Navy, fontWeight = FontWeight.Bold) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Box(
+                        Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(Am.Well)
+                            .clickable {
+                                addMenuOpen = false
+                                packPicker.launch()
+                            }.padding(12.dp)
+                    ) {
+                        Column {
+                            Text("Import Effects Pack", color = Am.Navy, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                            Text("Install .effectspack or .zip pack bundle", color = Am.Navy.copy(alpha = 0.6f), fontSize = 12.sp)
+                        }
+                    }
+                    Box(
+                        Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(Am.Well)
+                            .clickable {
+                                addMenuOpen = false
+                                singlePicker.launch()
+                            }.padding(12.dp)
+                    ) {
+                        Column {
+                            Text("Import Single Effect", color = Am.Navy, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                            Text("Install standalone .xml shader effect", color = Am.Navy.copy(alpha = 0.6f), fontSize = 12.sp)
+                        }
+                    }
+                    Box(
+                        Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(Am.Well)
+                            .clickable {
+                                addMenuOpen = false
+                                studioOpen = true
+                            }.padding(12.dp)
+                    ) {
+                        Column {
+                            Text("Create in Effects Studio", color = Am.Navy, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                            Text("Write and compile a new GLSL fragment shader", color = Am.Navy.copy(alpha = 0.6f), fontSize = 12.sp)
+                        }
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(onClick = { addMenuOpen = false }) {
+                    Text(stringResource(R.string.cancel), color = Am.Navy)
+                }
+            },
+            containerColor = Am.Card
+        )
+    }
 }
 
 internal val AudioOrder = listOf(FxKind.Reverb, FxKind.HighPitch, FxKind.LowPitch, FxKind.Echo, FxKind.Voice, FxKind.Eq, FxKind.LowPass, FxKind.HighPass, FxKind.Compressor, FxKind.Gate)

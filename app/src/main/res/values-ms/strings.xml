@@ -1492,7 +1492,7 @@
     <string name="backup_migrate_result_title">Migration complete</string>
     <string name="backup_migrate_found">Migrated %1$d backup(s) from Documents/AbsentMotion.</string>
     <string name="backup_migrate_none">No legacy backups found in Documents/AbsentMotion.</string>
-    <string name="effects_category_packs">Packs</string>
+    <string name="effects_category_packs">Kesan Tersuai</string>
     <string name="effects_pack_manager">Effects Packs</string>
     <string name="effects_pack_import">Import Pack</string>
     <string name="effects_pack_studio">Effects Pack Studio</string>

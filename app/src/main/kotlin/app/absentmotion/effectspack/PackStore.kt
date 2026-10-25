@@ -35,22 +35,30 @@ object PackStore {
     fun packsDir(context: Context): File = File(context.filesDir, "packs").apply { mkdirs() }
 
     fun installBundledPacks(context: Context) {
-        val prefs = context.getSharedPreferences("packs_meta", Context.MODE_PRIVATE)
         val packs = listPacks(context)
-        if (packs.isNotEmpty() && prefs.getBoolean("bundled_installed", false)) return
-        val assetManager = context.assets
-        val list = runCatching { assetManager.list("packs") }.getOrNull() ?: return
+        if (packs.any { it.manifest.id == "gm.custom.bundle" }) return
+
         var changed = false
-        for (item in list) {
-            if (!item.endsWith(".effectspack") && !item.endsWith(".zip")) continue
+        val bundledNames = listOf("goldmotion_customfx.effectspack")
+        for (item in bundledNames) {
             runCatching {
-                assetManager.open("packs/$item").use { input ->
+                context.assets.open("packs/$item").use { input ->
                     importZip(context, input)
                     changed = true
                 }
             }
         }
-        prefs.edit().putBoolean("bundled_installed", true).apply()
+        val assetList = runCatching { context.assets.list("packs") }.getOrNull().orEmpty()
+        for (item in assetList) {
+            if (item !in bundledNames && (item.endsWith(".effectspack") || item.endsWith(".zip"))) {
+                runCatching {
+                    context.assets.open("packs/$item").use { input ->
+                        importZip(context, input)
+                        changed = true
+                    }
+                }
+            }
+        }
         if (changed) {
             PackCatalog.refresh(context)
         }
@@ -200,7 +208,7 @@ object PackStore {
         val effectsDir = File(targetPackDir, "effects").apply { mkdirs() }
         val thumbsDir = File(targetPackDir, "thumbs").apply { mkdirs() }
 
-        val baseName = effect.id.removePrefix("gm.custom.")
+        val baseName = effect.id.removePrefix("gm.custom.").replace(Regex("[^a-zA-Z0-9_]"), "_")
         val xmlFile = File(effectsDir, "$baseName.xml")
         xmlFile.writeText(xmlString)
 
@@ -222,6 +230,7 @@ object PackStore {
         val newManifest = (manifest ?: PackManifest(id = packId, name = "Custom Effects", author = "User"))
             .copy(effects = updatedEffects)
         manifestFile.writeText(newManifest.toJson().toString(2))
+        PackCatalog.refresh(context)
 
         return ImportResult(packId, newManifest.name, 1, 0)
     }
