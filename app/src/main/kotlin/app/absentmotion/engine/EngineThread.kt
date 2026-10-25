@@ -32,6 +32,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import app.absentmotion.effects.EffectCatalog
 import app.absentmotion.effects.EffectDefinition
+import app.absentmotion.effectspack.PackCatalog
 import org.json.JSONArray
 import org.json.JSONObject
 import app.absentmotion.media.MediaLibrary
@@ -54,6 +55,7 @@ object EngineDebug {
 }
 
 class EngineThread(private val background: Int, context: Context? = null) {
+    private val appContext: Context? = context?.applicationContext
     private val thread = HandlerThread("am-engine").apply { start() }
     private val handler = Handler(thread.looper)
     private val dispatcher = handler.asCoroutineDispatcher()
@@ -130,17 +132,17 @@ class EngineThread(private val background: Int, context: Context? = null) {
                 pendingScene.fontsChanged(); pictureRevision.value++; requestRender()
             }
         } }
-        context?.let { app -> mediaScope.launch {
-            app.absentmotion.effectspack.PackCatalog.revision.collect { rev ->
+        appContext?.let { ctx -> mediaScope.launch {
+            PackCatalog.revision.collect { rev ->
                 if (rev > 0) reloadEffects()
             }
         } }
     }
 
     fun reloadEffects() {
-        val app = context ?: return
+        val ctx = appContext ?: return
         mediaScope.launch {
-            val catalog = app.absentmotion.effectspack.PackCatalog.mergeInto(EffectCatalog.read(app), app)
+            val catalog = PackCatalog.mergeInto(EffectCatalog.read(ctx), ctx)
             effectCatalog.value = withContext(dispatcher) {
                 if (closed) catalog else catalog.loadInto { runCatching { engine().loadEffect(it) }.getOrElse { e -> "shader error: ${e.message}" } }
             }
@@ -148,8 +150,8 @@ class EngineThread(private val background: Int, context: Context? = null) {
         }
     }
 
-    private val effectJob = context?.let { app -> mediaScope.launch {
-        val catalog = app.absentmotion.effectspack.PackCatalog.mergeInto(EffectCatalog.read(app), app)
+    private val effectJob = appContext?.let { ctx -> mediaScope.launch {
+        val catalog = PackCatalog.mergeInto(EffectCatalog.read(ctx), ctx)
         effectCatalog.value = withContext(dispatcher) {
             if (closed) catalog else catalog.loadInto { runCatching { engine().loadEffect(it) }.getOrElse { e -> "shader error: ${e.message}" } }
         }

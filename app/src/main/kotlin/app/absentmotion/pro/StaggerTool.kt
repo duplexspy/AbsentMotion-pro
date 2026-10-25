@@ -1,6 +1,5 @@
 package app.absentmotion.pro
 
-import app.absentmotion.model.LAYER_TAGS
 import app.absentmotion.model.Layer
 import app.absentmotion.model.Scene
 import kotlin.random.Random
@@ -52,7 +51,7 @@ object StaggerTool {
         }
 
         val updatedChildren = scene.node.children.map { node ->
-            if (node.name !in LAYER_TAGS) return@map node
+            if (node.name !in Scene.LAYER_TAGS) return@map node
             val layer = Layer(node)
             val delta = offsets[layer.id] ?: return@map node
 

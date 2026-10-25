@@ -85,7 +85,7 @@ fun EffectsPackStudio(onClose: () -> Unit) {
 
     val params = remember {
         mutableStateListOf(
-            PackEffectParam("intensity", "Intensity", "float", "1.0", 0f, 2f, 0.05f)
+            PackEffectParam("intensity", "intensity", "Intensity", "float", "1.0", 0f, 2f, 0.05f)
         )
     }
 
@@ -114,9 +114,12 @@ fun EffectsPackStudio(onClose: () -> Unit) {
 
     fun compile() {
         try {
-            val sksl = GlslTranslator.translate(shaderCode, params.toList())
-            if (sksl.contains("half4 main(float2 coord)")) {
-                compileStatus = "Shader SkSL translation succeeded (${sksl.length} chars)"
+            val result = GlslTranslator.translate(shaderCode, params.toList())
+            if (result.error != null) {
+                compileStatus = "Translation error: ${result.error}"
+                compileError = true
+            } else if (result.sksl.contains("half4 main(float2 coord)")) {
+                compileStatus = "Shader SkSL translation succeeded (${result.sksl.length} chars)"
                 compileError = false
             } else {
                 compileStatus = "Shader does not produce valid entry point"

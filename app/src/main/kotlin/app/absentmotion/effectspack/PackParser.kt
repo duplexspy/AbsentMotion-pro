@@ -144,7 +144,7 @@ object PackParser {
                 }
                 XmlPullParser.END_TAG -> {
                     if (parser.name == "selector" && currentSelectorId != null) {
-                        val selId = currentSelectorId!!
+                        val selId = currentSelectorId
                         val selLabel = currentSelectorLabel ?: selId
                         val choices = currentSelectorChoices
                         val options = choices.map { it.second }

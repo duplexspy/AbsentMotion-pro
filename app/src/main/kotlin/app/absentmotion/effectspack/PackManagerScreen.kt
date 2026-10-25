@@ -112,7 +112,7 @@ fun PackManagerScreen(onClose: () -> Unit) {
                             fontWeight = FontWeight.Bold
                         )
                         Box(
-                            Modifier.size(44.dp).clickable { picker.launch(listOf("*/*", "application/zip", "text/xml")) },
+                            Modifier.size(44.dp).clickable { picker.launch() },
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(EffectIcons.Add, stringResource(R.string.effects_pack_import), Modifier.size(24.dp), tint = Am.Navy)
@@ -227,7 +227,7 @@ private fun PackCard(
                 val info = "v${pack.manifest.version} • ${pack.effects.size} effects • ${pack.manifest.author}"
                 Text(info, color = Am.Navy.copy(alpha = 0.65f), fontSize = 12.sp)
             }
-            ThinSwitch(pack.enabled, onToggle)
+            ThinSwitch(pack.enabled, onChange = onToggle)
         }
 
         if (pack.manifest.description.isNotBlank()) {
@@ -246,7 +246,7 @@ private fun PackCard(
         ) {
             Box(Modifier.clickable(onClick = onExport).padding(horizontal = 8.dp, vertical = 4.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(HomeIcons.Share, null, Modifier.size(16.dp), tint = Am.Accent)
+                    Icon(ChromeIcons.Share, null, Modifier.size(16.dp), tint = Am.Accent)
                     Spacer(Modifier.width(4.dp))
                     Text(stringResource(R.string.export), color = Am.Accent, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                 }

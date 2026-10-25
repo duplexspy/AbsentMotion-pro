@@ -292,7 +292,11 @@ class MainActivity : ComponentActivity() {
                     val job = coroutineContext.job
                     val importer = Importer.forApp(applicationContext, store)
                     for (uri in uris) try {
-                        val sniff = contentResolver.openInputStream(uri)?.use { it.readAtMost(1024) } ?: ByteArray(0)
+                        val sniff = contentResolver.openInputStream(uri)?.use {
+                            val b = ByteArray(1024)
+                            val n = it.read(b)
+                            if (n > 0) b.copyOf(n) else ByteArray(0)
+                        } ?: ByteArray(0)
                         val isZip = sniff.size >= 2 && sniff[0] == 'P'.code.toByte() && sniff[1] == 'K'.code.toByte()
                         var handled = false
                         if (isZip) {

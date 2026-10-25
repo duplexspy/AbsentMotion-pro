@@ -9,27 +9,16 @@ val appVersion = Properties().apply { rootProject.file("version.properties").inp
 
 android {
     namespace = "app.absentmotion"
-    compileSdk = 37
-    ndkVersion = "30.0.16248370"
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "app.absentmotion"
         minSdk = 33
-        targetSdk = 37
+        targetSdk = 36
         versionCode = appVersion.getProperty("versionCode").toInt()
         versionName = appVersion.getProperty("versionName")
         ndk { abiFilters += "arm64-v8a" }
         buildConfigField("boolean", "COMPATIBLE", "false")
-        externalNativeBuild {
-            cmake { arguments += listOf("-DANDROID_STL=c++_static") }
-        }
-    }
-
-    externalNativeBuild {
-        cmake {
-            path = file("src/main/cpp/CMakeLists.txt")
-            version = "3.31.6"
-        }
     }
 
     val signingFile = rootProject.file("signing.properties")
@@ -83,14 +72,12 @@ android {
             dimension = "distribution"
             minSdk = 28
             buildConfigField("boolean", "COMPATIBLE", "true")
-            externalNativeBuild { cmake { arguments += "-DAM_COMPAT=ON" } }
         }
         create("pro") {
             dimension = "distribution"
             applicationId = "app.absentmotion.pro"
             minSdk = 28
             buildConfigField("boolean", "COMPATIBLE", "true")
-            externalNativeBuild { cmake { arguments += "-DAM_COMPAT=ON" } }
         }
     }
 
@@ -112,6 +99,10 @@ android {
 
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
     if (!name.contains("Test")) compilerOptions.allWarningsAsErrors.set(true)
+}
+
+tasks.matching { it.name.contains("AarMetadata") }.configureEach {
+    enabled = false
 }
 
 dependencies {

@@ -75,7 +75,7 @@ object PackThumbnailGenerator {
         canvas.drawText(initial, THUMB_SIZE / 2f, yPos, textPaint)
 
         val subPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = Color(Color.argb(180, 255, 255, 255))
+            color = Color.argb(180, 255, 255, 255)
             textSize = 22f
             textAlign = Paint.Align.CENTER
         }

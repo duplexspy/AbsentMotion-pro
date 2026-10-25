@@ -104,11 +104,11 @@ internal fun openVideoEncoder(s: ExportSettings, width: Int, height: Int, hot: B
             val targetW = if (vCaps != null && !vCaps.isSizeSupported(width, height)) {
                 val clampedW = width.coerceIn(vCaps.supportedWidths.lower, vCaps.supportedWidths.upper)
                 val clampedH = height.coerceIn(vCaps.supportedHeights.lower, vCaps.supportedHeights.upper)
-                clampedW and 1.inv() to clampedH and 1.inv()
+                (clampedW and 1.inv()) to (clampedH and 1.inv())
             } else {
                 width to height
             }
-            val rated = runCatching { vCaps?.getSupportedFrameRatesFor(targetW.first, targetW.second)?.upper }.getOrDefault(0.0)
+            val rated = runCatching { vCaps?.getSupportedFrameRatesFor(targetW.first, targetW.second)?.upper }.getOrNull() ?: 0.0
             val key = "${info.name} ${targetW.first}x${targetW.second} ${s.fps}"
             val high = mime == MediaFormat.MIMETYPE_VIDEO_AVC && key !in HighRefused && caps.profileLevels.any { it.profile == MediaCodecInfo.CodecProfileLevel.AVCProfileHigh }
             val codec = try { MediaCodec.createByCodecName(info.name) } catch (e: Exception) {
