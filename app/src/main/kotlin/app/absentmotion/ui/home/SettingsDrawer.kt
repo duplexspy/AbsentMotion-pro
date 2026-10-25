@@ -116,7 +116,7 @@ fun SettingsDrawer(settings: AppSettings, drawer: androidx.compose.material3.Dra
                 ThemeRow(settings)
                 DurationRow(settings)
                 SwitchRow(stringResource(R.string.settings_vibration), settings.vibration, enabled = true) { settings.vibration = it }
-                SwitchRow(stringResource(R.string.settings_pro_tools), settings.proToolsEnabled, enabled = true) { settings.proToolsEnabled = it }
+                SwitchRow(stringResource(R.string.pro_tools_setting), settings.proToolsEnabled, enabled = true) { settings.proToolsEnabled = it }
                 Divider(10.dp)
                 ChoicesBlock(R.string.settings_emoji) {
                     Choices(listOf(R.string.settings_emoji_system, R.string.settings_emoji_android), if (settings.androidEmoji) 1 else 0) { settings.androidEmoji = it == 1 }
@@ -145,10 +145,10 @@ fun SettingsDrawer(settings: AppSettings, drawer: androidx.compose.material3.Dra
             Category(R.string.settings_group_backup, ChromeIcons.SavePreset) {
                 BackupRows(settings, onRestored)
             }
-            LinkRow(stringResource(R.string.settings_effects_packs)) { packsScreen = true }
+            LinkRow(stringResource(R.string.effects_pack_manager)) { packsScreen = true }
             Spacer(Modifier.height(CardGap))
             if (settings.proToolsEnabled) {
-                LinkRow(stringResource(R.string.pro_effects_pack_studio)) { studioScreen = true }
+                LinkRow(stringResource(R.string.effects_pack_studio)) { studioScreen = true }
                 Spacer(Modifier.height(CardGap))
             }
             LinkRow(stringResource(R.string.settings_language), currentLanguage(LocalContext.current).nativeName) { language = true }

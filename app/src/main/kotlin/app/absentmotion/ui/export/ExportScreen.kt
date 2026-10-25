@@ -664,8 +664,8 @@ private fun TemplateToggle(checked: Boolean, onChange: (Boolean) -> Unit, onInfo
 private fun SafeModeToggle(checked: Boolean, onChange: (Boolean) -> Unit) {
     Row(Modifier.fillMaxWidth().background(Am.Card).height(52.dp).padding(horizontal = 15.dp), verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f)) {
-            Text(stringResource(R.string.export_safe_mode), color = Navy, fontSize = 14.sp, fontWeight = FontWeight.Bold)
-            Text(stringResource(R.string.export_safe_mode_desc), color = Am.HomeDim, fontSize = 11.sp, maxLines = 1)
+            Text(stringResource(R.string.pro_safe_mode), color = Navy, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+            Text(stringResource(R.string.pro_safe_mode_desc), color = Am.HomeDim, fontSize = 11.sp, maxLines = 1)
         }
         Switch(
             checked, onChange,

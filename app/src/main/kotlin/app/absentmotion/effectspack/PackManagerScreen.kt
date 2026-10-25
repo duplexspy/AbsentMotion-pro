@@ -84,9 +84,9 @@ fun PackManagerScreen(onClose: () -> Unit) {
                 }
                 if (res != null) {
                     PackCatalog.refresh(context)
-                    importStatus = "${context.getString(R.string.pack_installed)}: ${res.name} (${res.importedCount} effects)"
+                    importStatus = "${context.getString(R.string.effects_pack_enable)}: ${res.name} (${res.importedCount} effects)"
                 } else {
-                    Toast.makeText(context, context.getString(R.string.pack_import_failed), Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, context.getString(R.string.effects_pack_compile_error, "Invalid format"), Toast.LENGTH_SHORT).show()
                 }
             }
         }
@@ -105,7 +105,7 @@ fun PackManagerScreen(onClose: () -> Unit) {
                             Icon(HomeIcons.Close, stringResource(R.string.action_close), Modifier.size(24.dp), tint = Am.Navy)
                         }
                         Text(
-                            stringResource(R.string.settings_effects_packs),
+                            stringResource(R.string.effects_pack_manager),
                             Modifier.weight(1f).padding(horizontal = 8.dp),
                             color = Am.Navy,
                             fontSize = 18.sp,
@@ -115,14 +115,14 @@ fun PackManagerScreen(onClose: () -> Unit) {
                             Modifier.size(44.dp).clickable { picker.launch(listOf("*/*", "application/zip", "text/xml")) },
                             contentAlignment = Alignment.Center
                         ) {
-                            Icon(EffectIcons.Add, stringResource(R.string.pack_import), Modifier.size(24.dp), tint = Am.Navy)
+                            Icon(EffectIcons.Add, stringResource(R.string.effects_pack_import), Modifier.size(24.dp), tint = Am.Navy)
                         }
                     }
 
                     if (packs.isEmpty()) {
                         Box(Modifier.weight(1f).fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) {
                             Text(
-                                stringResource(R.string.pack_none_installed),
+                                stringResource(R.string.effects_pack_empty),
                                 color = Am.Navy.copy(alpha = 0.6f),
                                 fontSize = 14.sp,
                                 textAlign = androidx.compose.ui.text.style.TextAlign.Center
@@ -174,7 +174,7 @@ fun PackManagerScreen(onClose: () -> Unit) {
                     AlertDialog(
                         onDismissRequest = { deletingPack = null },
                         title = { Text(pack.manifest.name, color = Am.Navy) },
-                        text = { Text(stringResource(R.string.pack_delete_confirm), color = Am.Navy) },
+                        text = { Text(stringResource(R.string.effects_pack_delete), color = Am.Navy) },
                         confirmButton = {
                             TextButton(onClick = {
                                 PackStore.deletePack(context, pack.manifest.id)
@@ -196,7 +196,7 @@ fun PackManagerScreen(onClose: () -> Unit) {
                 importStatus?.let { status ->
                     AlertDialog(
                         onDismissRequest = { importStatus = null },
-                        title = { Text(stringResource(R.string.settings_effects_packs), color = Am.Navy) },
+                        title = { Text(stringResource(R.string.effects_pack_manager), color = Am.Navy) },
                         text = { Text(status, color = Am.Navy) },
                         confirmButton = {
                             TextButton(onClick = { importStatus = null }) {

@@ -141,7 +141,7 @@ fun EffectsPackStudio(onClose: () -> Unit) {
                             Icon(HomeIcons.Close, stringResource(R.string.action_close), Modifier.size(24.dp), tint = Am.Navy)
                         }
                         Text(
-                            stringResource(R.string.pro_effects_pack_studio),
+                            stringResource(R.string.effects_pack_studio),
                             Modifier.weight(1f).padding(horizontal = 8.dp),
                             color = Am.Navy,
                             fontSize = 18.sp,
