@@ -12,6 +12,7 @@ import app.absentmotion.engine.EngineThread
 import app.absentmotion.i18n.UiText
 import app.absentmotion.i18n.txt
 import app.absentmotion.model.Scene
+import app.absentmotion.pro.ProFeatures
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -44,7 +45,12 @@ data class EncoderCaps(
     private fun covering(width: Int, height: Int) = sizes.filter { it.width >= width && it.height >= height }
 
     fun fitsSize(width: Int, height: Int): Boolean =
-        width in widths && height in heights && width % widthAlign == 0 && height % heightAlign == 0 && covering(width, height).isNotEmpty()
+        width in widths && height in heights && (
+            (width % widthAlign == 0 && height % heightAlign == 0) ||
+            (ProFeatures.isEnabled(ProFeatures.exportEdgeLineFix) &&
+                ((width + widthAlign - 1) / widthAlign * widthAlign) in widths &&
+                ((height + heightAlign - 1) / heightAlign * heightAlign) in heights)
+        ) && covering(width, height).isNotEmpty()
 
     fun fits(width: Int, height: Int, fps: Int): Boolean = fitsSize(width, height) &&
         covering(width, height).any { it.maxFps * it.width * it.height >= fps.toDouble() * width * height * 0.999 }

@@ -28,6 +28,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.io.Closeable
+import app.absentmotion.pro.ProFeatures
 import java.io.File
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
@@ -326,7 +327,10 @@ private class ProxyGl(private val surface: Surface, private val width: Int, priv
             context = EGL14.eglCreateContext(display, configs[0], EGL14.EGL_NO_CONTEXT, intArrayOf(EGL14.EGL_CONTEXT_CLIENT_VERSION, 2, EGL14.EGL_NONE), 0)
             window = EGL14.eglCreateWindowSurface(display, configs[0], surface, intArrayOf(EGL14.EGL_NONE), 0)
             check(EGL14.eglMakeCurrent(display, window, window, context)) { "cannot use the EGL surface" }
-            program = link(VERTEX, FRAGMENT)
+            program = link(
+                if (ProFeatures.isEnabled(ProFeatures.exportEdgeLineFix)) VERTEX_FIXED else VERTEX,
+                if (ProFeatures.isEnabled(ProFeatures.exportEdgeLineFix)) FRAGMENT_FIXED else FRAGMENT
+            )
             texture = IntArray(1).also { GLES20.glGenTextures(1, it, 0) }[0]
             GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, texture)
             GLES20.glTexParameteri(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_LINEAR)
@@ -399,6 +403,34 @@ varying vec2 uv;
 void main() {
     gl_FragColor = 0.25 * (texture2D(frame, uv + across + down) + texture2D(frame, uv + across - down)
         + texture2D(frame, uv - across + down) + texture2D(frame, uv - across - down));
+}
+"""
+        const val VERTEX_FIXED = """
+attribute vec2 corner;
+uniform mat4 transform;
+varying vec2 uv;
+varying vec4 bounds;
+void main() {
+    gl_Position = vec4(corner * 2.0 - 1.0, 0.0, 1.0);
+    uv = (transform * vec4(corner, 0.0, 1.0)).xy;
+    vec2 p0 = (transform * vec4(0.0, 0.0, 0.0, 1.0)).xy;
+    vec2 p1 = (transform * vec4(1.0, 1.0, 0.0, 1.0)).xy;
+    bounds = vec4(min(p0, p1), max(p0, p1));
+}
+"""
+        const val FRAGMENT_FIXED = """#extension GL_OES_EGL_image_external : require
+precision mediump float;
+uniform samplerExternalOES frame;
+uniform vec2 across;
+uniform vec2 down;
+varying vec2 uv;
+varying vec4 bounds;
+vec2 samplePt(vec2 p) {
+    return clamp(p, bounds.xy, bounds.zw);
+}
+void main() {
+    gl_FragColor = 0.25 * (texture2D(frame, samplePt(uv + across + down)) + texture2D(frame, samplePt(uv + across - down))
+        + texture2D(frame, samplePt(uv - across + down)) + texture2D(frame, samplePt(uv - across - down)));
 }
 """
     }

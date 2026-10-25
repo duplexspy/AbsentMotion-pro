@@ -7,6 +7,8 @@ import android.os.Build
 import android.system.Os
 import app.absentmotion.R
 import app.absentmotion.i18n.txt
+import app.absentmotion.platform.intOr
+import app.absentmotion.pro.ProFeatures
 import java.io.FileDescriptor
 import java.io.FileOutputStream
 import java.nio.ByteBuffer
@@ -47,8 +49,14 @@ internal class MatroskaSink(fd: FileDescriptor, private val fps: Int, webm: Bool
         val mime = format.getString(MediaFormat.KEY_MIME)!!
         fun csd(i: Int) = format.getByteBuffer("csd-$i")?.let { b -> ByteArray(b.remaining()).also { b.duplicate().get(it) } }
         val nals = (0..2).mapNotNull(::csd).flatMap { NalUnits.split(it) }
+        val trackW = if (ProFeatures.isEnabled(ProFeatures.exportEdgeLineFix) && format.containsKey("crop-right")) {
+            format.getInteger("crop-right") - format.intOr("crop-left", 0) + 1
+        } else format.getInteger(MediaFormat.KEY_WIDTH)
+        val trackH = if (ProFeatures.isEnabled(ProFeatures.exportEdgeLineFix) && format.containsKey("crop-bottom")) {
+            format.getInteger("crop-bottom") - format.intOr("crop-top", 0) + 1
+        } else format.getInteger(MediaFormat.KEY_HEIGHT)
         fun video(id: String, private: ByteArray?) = MatroskaWriter.Track(
-            true, id, private, format.getInteger(MediaFormat.KEY_WIDTH), format.getInteger(MediaFormat.KEY_HEIGHT), frameDurationNs(fps), bt601 = bt601,
+            true, id, private, trackW, trackH, frameDurationNs(fps), bt601 = bt601,
         )
         fun audio(id: String, private: ByteArray?, delayNs: Long = 0, preRollNs: Long = 0) = MatroskaWriter.Track(
             false, id, private, sampleRate = format.getInteger(MediaFormat.KEY_SAMPLE_RATE).toDouble(),

@@ -12,8 +12,12 @@ In accordance with Ground Rule 3, every core change is kept surgical, flag-guard
 | **Phase 0** | `app/src/main/kotlin/app/absentmotion/MainActivity.kt` | Initialize `ProFeatures` and startup stability timer | N/A | Active |
 | **Phase 0** | `app/src/main/kotlin/app/absentmotion/library/CrashLogs.kt` | Hook startup crash counter for Safe Mode guard | N/A | Active |
 | **Phase 0** | `app/src/main/kotlin/app/absentmotion/ui/home/SettingsDrawer.kt` | Safe Mode status display and reset toggle | N/A | Active |
-| **Phase 1** | `app/src/main/kotlin/app/absentmotion/export/VideoExport.kt` | Alignment, viewport rounding, and edge clamp fixes | `ProFeatures.exportEdgeLineFix` | Planned |
-| **Phase 1** | `app/src/main/kotlin/app/absentmotion/export/ExportChoices.kt` | Supported encoder dimension alignment verification | `ProFeatures.exportEdgeLineFix` | Planned |
+| **Phase 1** | `app/src/main/kotlin/app/absentmotion/export/VideoExport.kt` | Alignment, viewport rounding, and edge clamp fixes | `ProFeatures.exportEdgeLineFix` | Active |
+| **Phase 1** | `app/src/main/kotlin/app/absentmotion/engine/EngineThread.kt` | Adaptive background clear color for export targets | `ProFeatures.exportEdgeLineFix` | Active |
+| **Phase 1** | `app/src/main/kotlin/app/absentmotion/export/Muxers.kt` | Matroska/WebM visible crop rect header compliance | `ProFeatures.exportEdgeLineFix` | Active |
+| **Phase 1** | `app/src/main/kotlin/app/absentmotion/media/VideoProxies.kt` | Proxy downsampler UV clamping within frame bounds | `ProFeatures.exportEdgeLineFix` | Active |
+| **Phase 1** | `app/src/main/kotlin/app/absentmotion/ai/AiVideo.kt` | YUV buffer padding edge clamp initialization | `ProFeatures.exportEdgeLineFix` | Active |
+| **Phase 1** | `app/src/main/kotlin/app/absentmotion/export/DeviceCapabilities.kt` | Encoder dimension alignment support detection | `ProFeatures.exportEdgeLineFix` | Active |
 | **Phase 2A**| `app/src/main/kotlin/app/absentmotion/engine/EngineThread.kt` | Linear text, subpixel antialiasing, and scale-independent stem handling | `ProFeatures.textRenderFix` | Planned |
 | **Phase 2B**| `app/src/main/kotlin/app/absentmotion/engine/EngineThread.kt` | Group buffer scaling, offscreen pass skipping, trilinear downsampling | `ProFeatures.groupSharpnessFix` | Planned |
 | **Phase 3** | `app/src/main/kotlin/app/absentmotion/ui/editor/effects/EffectBrowser.kt` | Memory-efficient LQ thumbnail loader and atlas caching | `ProFeatures.effectThumbnailsLq` | Planned |

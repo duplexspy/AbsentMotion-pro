@@ -10,10 +10,10 @@ class StaggerToolTest {
     @Test
     fun staggerLayersShiftsStartAndEndTimesSequentially() {
         val xml = """
-            <scene width="1080" height="1920" fps="30" duration="5000">
-                <layer id="101" name="Layer 1" type="shape" startTime="0" endTime="1000"/>
-                <layer id="102" name="Layer 2" type="shape" startTime="0" endTime="1000"/>
-                <layer id="103" name="Layer 3" type="shape" startTime="0" endTime="1000"/>
+            <scene width="1080" height="1920" fps="30" totalTime="5000">
+                <shape id="101" startTime="0" endTime="1000"/>
+                <shape id="102" startTime="0" endTime="1000"/>
+                <shape id="103" startTime="0" endTime="1000"/>
             </scene>
         """.trimIndent()
         val scene = Scene(XmlNode.parse(xml))
@@ -43,9 +43,9 @@ class StaggerToolTest {
     @Test
     fun staggerPreservesDurations() {
         val xml = """
-            <scene width="1080" height="1920" fps="30" duration="5000">
-                <layer id="201" name="L1" type="shape" startTime="100" endTime="600"/>
-                <layer id="202" name="L2" type="shape" startTime="200" endTime="800"/>
+            <scene width="1080" height="1920" fps="30" totalTime="5000">
+                <shape id="201" startTime="100" endTime="600"/>
+                <shape id="202" startTime="200" endTime="800"/>
             </scene>
         """.trimIndent()
         val scene = Scene(XmlNode.parse(xml))

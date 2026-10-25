@@ -18,6 +18,7 @@ import app.absentmotion.media.FrameReader
 import app.absentmotion.media.videoDeclaration
 import app.absentmotion.model.Layer
 import app.absentmotion.model.MediaDeclaration
+import app.absentmotion.pro.ProFeatures
 import kotlinx.coroutines.delay
 import java.io.Closeable
 import java.io.File
@@ -32,23 +33,29 @@ internal fun videoBitrate(width: Int, height: Int, fps: Float): Int = (width.toD
 internal fun writeYuv(argb: IntArray, stride: Int, width: Int, height: Int, image: Image) {
     val (yPlane, uPlane, vPlane) = image.planes
     val y = yPlane.buffer
-    for (row in 0 until height) {
+    val targetW = if (ProFeatures.isEnabled(ProFeatures.exportEdgeLineFix)) image.width else width
+    val targetH = if (ProFeatures.isEnabled(ProFeatures.exportEdgeLineFix)) image.height else height
+    for (row in 0 until targetH) {
         val base = row * yPlane.rowStride
-        val line = row * stride
-        for (col in 0 until width) {
-            val p = argb[line + col]
+        val srcRow = minOf(height - 1, row)
+        val line = srcRow * stride
+        for (col in 0 until targetW) {
+            val srcCol = minOf(width - 1, col)
+            val p = argb[line + srcCol]
             y.put(base + col * yPlane.pixelStride, lumaOf(p).toByte())
         }
     }
     val u = uPlane.buffer
     val v = vPlane.buffer
-    for (row in 0 until (height + 1) / 2) {
+    for (row in 0 until (targetH + 1) / 2) {
         val uBase = row * uPlane.rowStride
         val vBase = row * vPlane.rowStride
-        for (col in 0 until (width + 1) / 2) {
+        val srcRow = minOf((height + 1) / 2 - 1, row)
+        for (col in 0 until (targetW + 1) / 2) {
+            val srcCol = minOf((width + 1) / 2 - 1, col)
             var r = 0; var g = 0; var b = 0
             for (dy in 0..1) for (dx in 0..1) {
-                val p = argb[minOf(height - 1, row * 2 + dy) * stride + minOf(width - 1, col * 2 + dx)]
+                val p = argb[minOf(height - 1, srcRow * 2 + dy) * stride + minOf(width - 1, srcCol * 2 + dx)]
                 r += (p shr 16) and 0xFF; g += (p shr 8) and 0xFF; b += p and 0xFF
             }
             u.put(uBase + col * uPlane.pixelStride, ((-26 * r - 87 * g + 113 * b + 512) / 1024 + 128).coerceIn(0, 255).toByte())

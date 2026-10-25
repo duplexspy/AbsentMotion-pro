@@ -17,6 +17,7 @@ import app.absentmotion.engine.EngineThread
 import app.absentmotion.i18n.UiText
 import app.absentmotion.i18n.txt
 import app.absentmotion.model.Scene
+import app.absentmotion.pro.ProFeatures
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
@@ -82,7 +83,10 @@ internal suspend fun <T> holdingVideo(hold: () -> Job?, release: () -> Job?, blo
 
 private val HighRefused: MutableSet<String> = java.util.concurrent.ConcurrentHashMap.newKeySet()
 
-internal fun openVideoEncoder(s: ExportSettings, width: Int, height: Int, hot: Boolean, note: (UiText) -> Unit = {}, bitrate: Int? = null): MediaCodec {
+internal fun openVideoEncoder(
+    s: ExportSettings, width: Int, height: Int, hot: Boolean, note: (UiText) -> Unit = {}, bitrate: Int? = null,
+    onConfigured: ((Int, Int) -> Unit)? = null,
+): MediaCodec {
     val candidateMimes = listOf(s.codec.mime, MediaFormat.MIMETYPE_VIDEO_AVC).distinct()
     var last: Throwable? = null
 
@@ -104,7 +108,17 @@ internal fun openVideoEncoder(s: ExportSettings, width: Int, height: Int, hot: B
             val targetW = if (vCaps != null && !vCaps.isSizeSupported(width, height)) {
                 val clampedW = width.coerceIn(vCaps.supportedWidths.lower, vCaps.supportedWidths.upper)
                 val clampedH = height.coerceIn(vCaps.supportedHeights.lower, vCaps.supportedHeights.upper)
-                (clampedW and 1.inv()) to (clampedH and 1.inv())
+                if (ProFeatures.isEnabled(ProFeatures.exportEdgeLineFix)) {
+                    val alignW = vCaps.widthAlignment.coerceAtLeast(2)
+                    val alignH = vCaps.heightAlignment.coerceAtLeast(2)
+                    val alignedW = ((clampedW + alignW - 1) / alignW) * alignW
+                    val alignedH = ((clampedH + alignH - 1) / alignH) * alignH
+                    val safeW = if (alignedW > vCaps.supportedWidths.upper) (vCaps.supportedWidths.upper / alignW) * alignW else alignedW
+                    val safeH = if (alignedH > vCaps.supportedHeights.upper) (vCaps.supportedHeights.upper / alignH) * alignH else alignedH
+                    safeW to safeH
+                } else {
+                    (clampedW and 1.inv()) to (clampedH and 1.inv())
+                }
             } else {
                 width to height
             }
@@ -119,10 +133,11 @@ internal fun openVideoEncoder(s: ExportSettings, width: Int, height: Int, hot: B
             var highFailed = false
             for (bestEffort in if (hot || rated < 2.0 * s.fps) listOf(true, false) else listOf(false, true)) for (profile in if (high) listOf(true, false) else listOf(false)) {
                 try {
-                    codec.configure(encoderFormat(info, caps, s, targetW.first, targetW.second, profile, bestEffort, hot, bitrate), null, null, MediaCodec.CONFIGURE_FLAG_ENCODE)
+                    codec.configure(encoderFormat(info, caps, s, targetW.first, targetW.second, profile, bestEffort, hot, bitrate, width, height), null, null, MediaCodec.CONFIGURE_FLAG_ENCODE)
                     Log.i("AMExport", "encoding with ${info.name}${if (profile) " (High)" else ""}${if (bestEffort) " at best effort" else ""}; rated for ${rated.toInt()} fps at ${targetW.first}x${targetW.second}")
                     if (highFailed && !profile) HighRefused += key
                     if (!info.hardware || mime != s.codec.mime) note(txt(R.string.export_note_software))
+                    onConfigured?.invoke(targetW.first, targetW.second)
                     return codec
                 } catch (e: Exception) {
                     last = e
@@ -138,7 +153,8 @@ internal fun openVideoEncoder(s: ExportSettings, width: Int, height: Int, hot: B
 }
 
 private fun encoderFormat(info: MediaCodecInfo, caps: MediaCodecInfo.CodecCapabilities, s: ExportSettings, width: Int, height: Int,
-                          profile: Boolean, bestEffort: Boolean, hot: Boolean, bitrate: Int?) = MediaFormat.createVideoFormat(s.codec.mime, width, height).apply {
+                          profile: Boolean, bestEffort: Boolean, hot: Boolean, bitrate: Int?,
+                          origWidth: Int = width, origHeight: Int = height) = MediaFormat.createVideoFormat(s.codec.mime, width, height).apply {
     val bitrates = caps.videoCapabilities!!.bitrateRange
     setInteger(MediaFormat.KEY_COLOR_FORMAT, MediaCodecInfo.CodecCapabilities.COLOR_FormatSurface)
     setInteger(MediaFormat.KEY_BIT_RATE, (bitrate ?: videoBitrate(width, height, s)).coerceIn(bitrates.lower, bitrates.upper))
@@ -147,6 +163,12 @@ private fun encoderFormat(info: MediaCodecInfo, caps: MediaCodecInfo.CodecCapabi
     setInteger(MediaFormat.KEY_COLOR_STANDARD, if (fixedBt601(info)) MediaFormat.COLOR_STANDARD_BT601_NTSC else MediaFormat.COLOR_STANDARD_BT709)
     setInteger(MediaFormat.KEY_COLOR_RANGE, MediaFormat.COLOR_RANGE_LIMITED)
     setInteger(MediaFormat.KEY_COLOR_TRANSFER, MediaFormat.COLOR_TRANSFER_SDR_VIDEO)
+    if (ProFeatures.isEnabled(ProFeatures.exportEdgeLineFix) && (width != origWidth || height != origHeight)) {
+        setInteger("crop-left", 0)
+        setInteger("crop-top", 0)
+        setInteger("crop-right", origWidth - 1)
+        setInteger("crop-bottom", origHeight - 1)
+    }
     if (profile) setInteger(MediaFormat.KEY_PROFILE, MediaCodecInfo.CodecProfileLevel.AVCProfileHigh)
     if (bestEffort) setInteger(MediaFormat.KEY_PRIORITY, 1)
     if (hot) setInteger(MediaFormat.KEY_OPERATING_RATE, s.fps)
@@ -156,7 +178,12 @@ private suspend fun encode(
     engine: EngineThread, scene: Scene, xml: String, s: ExportSettings, out: FileDescriptor, audio: AudioMix?, width: Int, height: Int, frames: Int,
     hotAtStart: Boolean, pauseMs: () -> Long, note: (UiText) -> Unit, progress: (Float) -> Unit,
 ) {
-    val encoder = openVideoEncoder(s, width, height, hotAtStart, note)
+    var encWidth = width
+    var encHeight = height
+    val encoder = openVideoEncoder(s, width, height, hotAtStart, note) { w, h ->
+        encWidth = w
+        encHeight = h
+    }
     val stop = AtomicBoolean()
     val failure = AtomicReference<Throwable>()
     fun fail(t: Throwable) { failure.compareAndSet(null, t); stop.set(true) }
@@ -170,7 +197,7 @@ private suspend fun encode(
     try {
         val input = encoder.createInputSurface().also { surface = it }
         encoder.start()
-        worker("video") { drain(encoder, mux, videoDone, BASE_US) }
+        worker("video") { drain(encoder, mux, videoDone, BASE_US, origWidth = width, origHeight = height, encWidth = encWidth, encHeight = encHeight) }
         if (audio != null) {
             val sound = s.audio
             val coder = createAudioEncoder(sound).also { audioEncoder = it }
@@ -200,7 +227,7 @@ private suspend fun encode(
                 Log.i("AMExport", "$frames frames in ${spent[2] / 1_000_000} ms; per frame: ${perFrame(spent[2])} ms, drawing ${perFrame(spent[0] - spent[1])} ms, waiting for copies ${perFrame(spent[1])} ms")
             }
             val buffers = ExportDebug.forceBuffers || Build.VERSION.SDK_INT < 33 || !stampsPresentTime()
-            Log.i("AMExport", "rendering $frames frames at ${width}x$height through ${if (buffers) "encoder buffers" else "the swapchain"}")
+            Log.i("AMExport", "rendering $frames frames at ${encWidth}x$encHeight through ${if (buffers) "encoder buffers" else "the swapchain"}")
             if (buffers && Build.VERSION.SDK_INT >= 33) {
                 val writer = ImageWriter.Builder(input).setMaxImages(2).setHardwareBufferFormat(HardwareBuffer.RGBA_8888)
                     .setUsage(HardwareBuffer.USAGE_GPU_COLOR_OUTPUT or HardwareBuffer.USAGE_GPU_SAMPLED_IMAGE).build()
@@ -222,7 +249,7 @@ private suspend fun encode(
                     writer.close()
                 }
             } else if (buffers) {
-                val feed = EncoderFeed(input, width, height)
+                val feed = EncoderFeed(input, encWidth, encHeight)
                 try {
                     eachFrame({ exportCheck(feed.flush().also { spent[1] = feed.waitedNs }) { txt(R.string.export_error_draw_frame, (frames - 1).toString()) } }) { k, presentNs ->
                         exportCheck(feed.ready().also { spent[1] = feed.waitedNs }) { txt(R.string.export_error_draw_frame, (k - 2).toString()) }
@@ -264,7 +291,7 @@ internal fun fixedBt601(info: MediaCodecInfo): Boolean = Build.VERSION.SDK_INT <
 
 internal fun drain(codec: MediaCodec, mux: Mux, stop: AtomicBoolean, ptsShift: Long,
                   audioDelay: AtomicInteger? = null, totalUs: Long = Long.MAX_VALUE, trace: Boolean = false, rate: Int = ExportAudio.SAMPLE_RATE,
-                  zeroStart: Boolean = false) {
+                  zeroStart: Boolean = false, origWidth: Int = 0, origHeight: Int = 0, encWidth: Int = 0, encHeight: Int = 0) {
     var shift = ptsShift
     var first = !zeroStart
     val audioTime = audioDelay?.let { AacTimestamps(rate = rate, negative = mux.negativeTimes) }
@@ -275,6 +302,16 @@ internal fun drain(codec: MediaCodec, mux: Mux, stop: AtomicBoolean, ptsShift: L
         when {
             index == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED -> {
                 val format = codec.outputFormat
+                if (ProFeatures.isEnabled(ProFeatures.exportEdgeLineFix) && origWidth > 0 && encWidth > origWidth) {
+                    if (!format.containsKey("crop-right")) {
+                        format.setInteger("crop-left", 0)
+                        format.setInteger("crop-right", origWidth - 1)
+                    }
+                    if (!format.containsKey("crop-bottom") && encHeight > origHeight) {
+                        format.setInteger("crop-top", 0)
+                        format.setInteger("crop-bottom", origHeight - 1)
+                    }
+                }
                 if (audioDelay != null) {
                     val frames = aacDelayFrames(format.intOr(MediaFormat.KEY_ENCODER_DELAY, -1))
                     audioDelay.set(frames)

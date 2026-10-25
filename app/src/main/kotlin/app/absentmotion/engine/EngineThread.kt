@@ -38,6 +38,7 @@ import org.json.JSONObject
 import app.absentmotion.media.MediaLibrary
 import app.absentmotion.media.Mesh
 import app.absentmotion.model.modelUris
+import app.absentmotion.pro.ProFeatures
 import app.absentmotion.fonts.FontLibrary
 import app.absentmotion.fonts.prepareText
 import app.absentmotion.model.fontNames
@@ -498,13 +499,20 @@ class EngineThread(private val background: Int, context: Context? = null) {
 
         suspend fun detach(target: Long) = withContext(NonCancellable + dispatcher) { engine?.detach(target) }
 
+        private val clearColor: Int
+            get() = if (ProFeatures.isEnabled(ProFeatures.exportEdgeLineFix)) {
+                if ((document.bgColor ushr 24) != 0) document.bgColor else 0
+            } else {
+                0xFF000000.toInt()
+            }
+
         suspend fun render(target: Long, timeMs: Int, presentTimeNs: Long): Boolean =
-            atFrame(document, timeMs, smoothing, fps) { engine().renderFrame(target, timeMs.toDouble(), 0xFF000000.toInt(), presentTimeNs) == 0 }
+            atFrame(document, timeMs, smoothing, fps) { engine().renderFrame(target, timeMs.toDouble(), clearColor, presentTimeNs) == 0 }
 
         suspend fun stampsPresentTime(): Boolean = withContext(dispatcher) { engine().displayTiming }
 
         suspend fun renderInto(buffer: HardwareBuffer, timeMs: Int): Boolean =
-            atFrame(document, timeMs, smoothing, fps) { engine().renderBuffer(buffer, timeMs.toDouble(), 0xFF000000.toInt()) == 0 }
+            atFrame(document, timeMs, smoothing, fps) { engine().renderBuffer(buffer, timeMs.toDouble(), clearColor) == 0 }
 
         suspend fun releaseBuffers() = withContext(NonCancellable + dispatcher) { engine?.releaseBuffers() }
     }

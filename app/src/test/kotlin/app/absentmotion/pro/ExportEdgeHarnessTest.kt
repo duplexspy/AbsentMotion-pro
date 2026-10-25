@@ -1,5 +1,7 @@
 package app.absentmotion.pro
 
+import app.absentmotion.export.EncoderCaps
+import app.absentmotion.export.SizePoint
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -26,6 +28,21 @@ class ExportEdgeHarnessTest {
             alignedHeight = alignedH,
             padX = alignedW - width,
             padY = alignedH - height,
+        )
+    }
+
+    private fun resolveClearColor(bgColor: Int, flagEnabled: Boolean): Int {
+        return if (flagEnabled) {
+            if ((bgColor ushr 24) != 0) bgColor else 0
+        } else {
+            0xFF000000.toInt()
+        }
+    }
+
+    private fun clampUv(uv: FloatArray, bounds: FloatArray): FloatArray {
+        return floatArrayOf(
+            uv[0].coerceIn(bounds[0], bounds[2]),
+            uv[1].coerceIn(bounds[1], bounds[3])
         )
     }
 
@@ -65,5 +82,79 @@ class ExportEdgeHarnessTest {
         val scaleY = aligned.alignedHeight.toFloat() / originalH
         assertTrue(scaleX >= 1.0f)
         assertTrue(scaleY >= 1.0f)
+    }
+
+    @Test
+    fun testClearColorSelection() {
+        val white = 0xFFFFFFFF.toInt()
+        val transparent = 0x00000000
+        val customBg = 0xFF1B1D27.toInt()
+
+        assertEquals(white, resolveClearColor(white, true))
+        assertEquals(0, resolveClearColor(transparent, true))
+        assertEquals(customBg, resolveClearColor(customBg, true))
+
+        assertEquals(0xFF000000.toInt(), resolveClearColor(white, false))
+        assertEquals(0xFF000000.toInt(), resolveClearColor(transparent, false))
+    }
+
+    @Test
+    fun testCropMetadataCalculation() {
+        val originalW = 1000
+        val originalH = 563
+        val aligned = alignDimensions(originalW, originalH, 16)
+
+        val cropLeft = 0
+        val cropTop = 0
+        val cropRight = originalW - 1
+        val cropBottom = originalH - 1
+
+        assertEquals(0, cropLeft)
+        assertEquals(0, cropTop)
+        assertEquals(999, cropRight)
+        assertEquals(562, cropBottom)
+        assertEquals(1008, aligned.alignedWidth)
+        assertEquals(576, aligned.alignedHeight)
+    }
+
+    @Test
+    fun testEncoderCapsFitsSizeWithAlignment() {
+        val caps = EncoderCaps(
+            name = "test.hw.avc",
+            mime = "video/avc",
+            hardware = true,
+            widths = 128..4096,
+            heights = 128..4096,
+            widthAlign = 16,
+            heightAlign = 16,
+            sizes = listOf(SizePoint(4096, 4096, 60.0)),
+        )
+
+        try {
+            ProFeatures.exportEdgeLineFix = false
+            assertFalse(caps.fitsSize(1000, 564))
+
+            ProFeatures.exportEdgeLineFix = true
+            assertTrue(caps.fitsSize(1000, 564))
+            assertTrue(caps.fitsSize(1080, 1920))
+        } finally {
+            ProFeatures.exportEdgeLineFix = true
+        }
+    }
+
+    @Test
+    fun testProxyUvClamping() {
+        val bounds = floatArrayOf(0.0f, 0.0f, 0.9926f, 1.0f)
+        val inside = clampUv(floatArrayOf(0.5f, 0.5f), bounds)
+        assertEquals(0.5f, inside[0], 0.0001f)
+        assertEquals(0.5f, inside[1], 0.0001f)
+
+        val outsideRight = clampUv(floatArrayOf(1.002f, 0.5f), bounds)
+        assertEquals(0.9926f, outsideRight[0], 0.0001f)
+        assertEquals(0.5f, outsideRight[1], 0.0001f)
+
+        val outsideTopLeft = clampUv(floatArrayOf(-0.01f, -0.01f), bounds)
+        assertEquals(0.0f, outsideTopLeft[0], 0.0001f)
+        assertEquals(0.0f, outsideTopLeft[1], 0.0001f)
     }
 }
