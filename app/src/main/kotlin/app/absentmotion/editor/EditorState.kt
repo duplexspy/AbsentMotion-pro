@@ -137,6 +137,7 @@ class EditorState(
     var cameraTip by mutableStateOf(false)
 
     var canvasZoom by mutableFloatStateOf(1f)
+    var timelineZoom by mutableFloatStateOf(100f)
     var canvasPan by mutableStateOf(Offset.Zero)
 
     var panZoomMode by mutableStateOf(false)
@@ -201,7 +202,8 @@ class EditorState(
 
     fun edit(key: Any? = null, change: (Scene) -> Scene) {
         Glide.interrupt()
-        history.edit(key, change(scene).withMattesFollowing())
+        val before = scene
+        history.edit(key, change(before).withMattesFollowing(before))
     }
 
     fun endGesture() {

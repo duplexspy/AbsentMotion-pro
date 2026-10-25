@@ -98,6 +98,51 @@ class ToolRegressions(unittest.TestCase):
                 self.assertEqual(0, result.returncode, result.stderr)
                 self.assertIn('30 frames in 2.0 s', result.stdout)
 
+    def test_comment_check_fails_when_git_cannot_list_the_files(self):
+        with tempfile.TemporaryDirectory() as folder:
+            fake = Path(folder) / 'git'
+            env = dict(os.environ, PATH=folder + os.pathsep + os.environ['PATH'])
+            for script, message in [('#!/bin/sh\nexit 128\n', 'no file was checked'), ('#!/bin/sh\nexit 0\n', 'nothing was checked')]:
+                fake.write_text(script)
+                fake.chmod(0o755)
+                result = subprocess.run([sys.executable, str(ROOT / 'tools/comment_check.py')], env=env, capture_output=True, text=True)
+                self.assertNotEqual(0, result.returncode)
+                self.assertIn(message, result.stderr)
+
+    def test_site_tests_are_required_in_ci_and_optional_elsewhere(self):
+        with tempfile.TemporaryDirectory() as folder:
+            env = {k: v for k, v in os.environ.items() if k != 'CI'}
+            env['PATH'] = folder
+            command = [sys.executable, str(ROOT / 'tools/site_build.py'), '--check']
+            local = subprocess.run(command, env=env, capture_output=True, text=True)
+            self.assertNotIn('did not run', local.stderr)
+            remote = subprocess.run(command, env=dict(env, CI='true'), capture_output=True, text=True)
+            self.assertNotEqual(0, remote.returncode)
+            self.assertIn('tools/site_test.js did not run', remote.stderr)
+
+    def test_full_check_refuses_native_libraries_older_than_the_native_code(self):
+        script = (ROOT / 'tools/check.sh').read_text()
+        function = script[script.index('native_libs() {'):script.index('\n}\n', script.index('native_libs() {')) + 3]
+        with tempfile.TemporaryDirectory() as folder:
+            folder = Path(folder)
+            lib = folder / 'app/build/intermediates/merged_native_libs/fossRelease/mergeFossReleaseNativeLibs/out/lib/arm64-v8a/libengine.so'
+            source = folder / 'app/src/main/cpp/engine.cpp'
+            run = lambda: subprocess.run(['sh', '-c', 'fail() { echo "FAILED: $1"; }; ' + function + '\nnative_libs fossRelease mergeFossReleaseNativeLibs; echo "rc=$? libs=$libs"'],
+                                         cwd=folder, capture_output=True, text=True).stdout
+            self.assertIn('rc=1', run())
+            self.assertIn('not built', run())
+            lib.parent.mkdir(parents=True)
+            lib.touch()
+            source.parent.mkdir(parents=True)
+            source.touch()
+            os.utime(source, (1000, 1000))
+            os.utime(lib, (2000, 2000))
+            self.assertIn('rc=0 libs=app/build/intermediates/merged_native_libs/fossRelease/mergeFossReleaseNativeLibs/out/lib/arm64-v8a', run())
+            os.utime(source, (3000, 3000))
+            stale = run()
+            self.assertIn('FAILED: the fossRelease native libraries are older than the native code', stale)
+            self.assertIn('rc=1', stale)
+
     def test_python_policy_rejects_docstrings_but_allows_data_strings(self):
         scanner = ROOT / 'tools/source_policy.py'
         self.assertTrue(scanner.exists())

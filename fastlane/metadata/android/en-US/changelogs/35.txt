@@ -1,0 +1,1 @@
+Absent Motion Pro 3.3.2-pro.1: Upstream 3.3.2 engine and effect updates, Gold Motion custom effect support, .effectspack bundles, unblocked export for all hardware, Effects Pack Studio, Stagger tool, keyframe graph utilities, project palettes, and social presets.

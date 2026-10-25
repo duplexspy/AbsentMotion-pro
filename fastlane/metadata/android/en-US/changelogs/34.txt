@@ -1,1 +1,1 @@
-Absent Motion Pro 3.3.1-pro.1: Gold Motion custom effect support, .effectspack bundles, unblocked export for all hardware, Effects Pack Studio, Stagger tool, keyframe graph utilities, project palettes, and social export queue.
+AbsentMotion 3.3.2: exports with sound work again on Android 9 and 10, cleaner effects (Static, Glitch, glows, Film Grain), better borders and strokes, camera-aware touch editing, and dozens of editor and AI fixes.

@@ -200,12 +200,15 @@ class MainActivity : ComponentActivity() {
                     LaunchedEffect(settings.autoUpdateCheck) { if (settings.autoUpdateCheck) Updates.atStart(applicationContext, settings) }
                     val returning = remember { cameFromEditor }
                     Box(Modifier.fillMaxSize().then(if (returning) Modifier.enterFade() else Modifier)) {
-                        HomeScreen(
-                            store, settings, onOpen = ::open, onExport = ::exportFromList,
-                            imported = imported, onImportShown = { imported = emptyList() }, onImportFile = { importUris(listOf(it)) },
-                            onTemplate = { id -> lifecycleScope.launch { if (engineWorks()) editingTemplate = id } }, onTemplateProject = ::projectFromTemplate,
-                            onHistory = { historyFor = Triple(it.id, it.title, it.damaged) }, onCollect = ::collectMedia, changes = projectsChanged,
-                        )
+                        val config = LocalConfiguration.current
+                        CompositionLocalProvider(LocalWide provides wideEditor(config.smallestScreenWidthDp, config.screenWidthDp)) {
+                            HomeScreen(
+                                store, settings, onOpen = ::open, onExport = ::exportFromList,
+                                imported = imported, onImportShown = { imported = emptyList() }, onImportFile = { importUris(listOf(it)) },
+                                onTemplate = { id -> lifecycleScope.launch { if (engineWorks()) editingTemplate = id } }, onTemplateProject = ::projectFromTemplate,
+                                onHistory = { historyFor = Triple(it.id, it.title, it.damaged) }, onCollect = ::collectMedia, changes = projectsChanged,
+                            )
+                        }
                         editingTemplate?.let { id ->
                             TemplateEditor(id, engine, settings, onClose = { editingTemplate = null }, onContinue = ::projectFromTemplate)
                         }
@@ -334,7 +337,7 @@ class MainActivity : ComponentActivity() {
                         throw e
                     } catch (e: Exception) {
                         Log.w("AMImport", "cannot import $uri", e)
-                        failure = failure ?: (e as? ImportFailed)?.text?.resolve(this@MainActivity) ?: e.message ?: getString(R.string.library_err_unsupported_type)
+                        failure = failure ?: (e as? ImportFailed)?.text?.resolve(this@MainActivity) ?: getString(R.string.backup_open_failed).takeIf { e is SecurityException } ?: e.message ?: getString(R.string.library_err_unsupported_type)
                     }
                 } }
             } finally {

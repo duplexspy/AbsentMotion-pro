@@ -30,12 +30,14 @@ fun listed(items: List<String>, @StringRes join: Int): Any =
 private fun ExportSettings.fitAudio(): ExportSettings =
     if (audio.codec in audioCodecsFor(container)) this else copy(audio = audio.copy(codec = audioCodecsFor(container).first()))
 
-private fun unsupported(support: Support): UiText? = (support as? Support.Unsupported)?.reason
+private fun unsupported(support: Support): UiText? = (support as? Support.Unsupported)?.takeIf { !it.sound }?.reason
 
 fun containerChoices(s: ExportSettings, check: (ExportSettings) -> Support): List<Choice<Container>> = Container.entries.map { Choice(it, null) }
 
 fun withContainer(s: ExportSettings, c: Container, check: (ExportSettings) -> Support): ExportSettings {
-    val options = (listOf(s.codec) + videoCodecsFor(c)).distinct().filter { it in videoCodecsFor(c) }.map { s.copy(container = c, codec = it).fitAudio() }
+    val sounds = (listOf(s.audio.codec) + audioCodecsFor(c)).distinct().filter { it in audioCodecsFor(c) }
+    val options = (listOf(s.codec) + videoCodecsFor(c)).distinct().filter { it in videoCodecsFor(c) }
+        .flatMap { codec -> sounds.map { s.copy(container = c, codec = codec, audio = s.audio.copy(codec = it)) } }
     return options.firstOrNull { check(it) is Support.Supported } ?: options.firstOrNull { check(it) !is Support.Unsupported } ?: options.first()
 }
 
