@@ -24,7 +24,7 @@ data class PackEffectParam(
         else -> "float"
     }
 
-    fun toEffectParam(): EffectParam = EffectParam(
+    fun toEffectParam(sectionHeader: String? = null): EffectParam = EffectParam(
         id = id,
         label = label,
         kind = kind,
@@ -33,6 +33,7 @@ data class PackEffectParam(
         max = max,
         step = step,
         options = options,
+        sectionHeader = sectionHeader,
     )
 }
 
@@ -61,12 +62,13 @@ data class PackEffect(
         name = name,
         category = "packs",
         description = description,
-        params = params.map { it.toEffectParam() },
+        params = params.mapIndexed { idx, p -> p.toEffectParam(sectionHeaders[idx]) },
         sksl = sksl,
         native = false,
         status = if (available) "ok" else (error ?: "error"),
         presets = emptyList(),
         customThumb = thumbPath ?: thumbRef,
+        group = group,
     )
 
     fun instance(): XmlNode = XmlNode(
