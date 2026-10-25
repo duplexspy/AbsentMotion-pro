@@ -314,7 +314,7 @@ def wrap(items, indent):
         if len(lines[-1] + item) > 118 and lines[-1] != indent:
             lines.append(indent)
         lines[-1] += item + ", "
-    return "\n".join(line.rstrip().removesuffix(",") if i == len(lines) - 1 else line.rstrip() for i, line in enumerate(lines))
+    return "\n".join((line.rstrip()[:-1] if line.rstrip().endswith(",") else line.rstrip()) if i == len(lines) - 1 else line.rstrip() for i, line in enumerate(lines))
 
 def catalogue_rows(manifest):
     rows = []
@@ -360,7 +360,11 @@ def problems(manifest):
     return found
 
 def notices_section(manifest):
-    from fontTools.ttLib import TTFont
+    try:
+        from fontTools.ttLib import TTFont
+    except ImportError:
+        text, start, end = notices_current()
+        return text[start:end]
     lines = ["| What | Source | Licence | File |", "|---|---|---|---|"]
     for family, entry in sorted(manifest["builtin"].items()):
         first = next(iter(entry["files"]))

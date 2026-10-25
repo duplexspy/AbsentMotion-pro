@@ -437,7 +437,8 @@ class Site:
 
     def compatible_item(self):
         v = self.version
-        if tuple(int(part) for part in v.split(".")[:3]) < (3, 3, 0):
+        clean_v = v.split("-")[0]
+        if tuple(int(part) for part in clean_v.split(".")[:3]) < (3, 3, 0):
             return ('<li><span id="dl-compatible" class="btn alt" aria-disabled="true">Compatible</span><div><strong>Android 9 to 12.</strong> '
                     'Coming with the next update. <a href="compatible.html">What it is</a>.</div></li>')
         return ('<li><a id="dl-compatible" class="btn alt" href="%s">Compatible</a><div><strong>Android 9 to 12.</strong> Some features are left out: '
