@@ -6,6 +6,13 @@ All notable changes to AbsentMotion are listed here, newest first. The format fo
 Versions before 2.0.0 were never published or numbered. The entry for 1.0.0 stands for the feature set as it stood on
 2026-10-12.
 
+## [3.3.2-pro.1] - 2026-10-25
+
+### Added
+
+- Merged official upstream AbsentMotion 3.3.2 release changes and bug fixes.
+- Preserved all Absent Motion Pro capabilities: Gold Motion custom effect XML parser and runtime engine, `.effectspack` bundle support, Pack Manager, Effects Pack Studio, unblocked export for all hardware tiers, Stagger/Cascade tool, keyframe graph curve utilities, project color palettes, social aspect presets, and old phone safe mode with automatic encoder fallback chain.
+
 ## [3.3.2] - 2026-10-24
 
 ### Changed
