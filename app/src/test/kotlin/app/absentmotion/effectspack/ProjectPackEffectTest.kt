@@ -20,8 +20,8 @@ class ProjectPackEffectTest {
             group = "Color and Grade",
             tags = listOf("color", "grade"),
             params = listOf(
-                PackEffectParam("intensity", "Intensity", "float", "0.75", 0f, 1f, 0.01f),
-                PackEffectParam("tint", "Tint", "color", "#ff008080")
+                PackEffectParam("intensity", "intensity", "Intensity", "float", "0.75", 0f, 1f, 0.01f),
+                PackEffectParam("tint", "tint", "Tint", "color", "#ff008080")
             ),
             glsl = "void main() { gl_FragColor = vec4(1.0); }",
             sksl = "half4 main(float2 coord) { return half4(1.0); }",
@@ -60,20 +60,20 @@ class ProjectPackEffectTest {
             </scene>
         """.trimIndent()
 
-        val parsed = Scene.fromXml(xml)
+        val parsed = Scene(XmlNode.parse(xml))
         assertNotNull(parsed)
 
         val layer = parsed.layers.firstOrNull()
         assertNotNull(layer)
 
-        val effects = layer!!.children.filter { it.name == "effect" }
+        val effects = layer!!.node.children.filter { it.name == "effect" }
         assertEquals(1, effects.size)
 
         val effectNode = effects.first()
         assertEquals("gm.custom.uninstalled_pack_effect", effectNode["id"])
         assertEquals(2, effectNode.children.size)
 
-        val outXml = parsed.toXml()
+        val outXml = parsed.node.toXml()
         assertTrue(outXml.contains("gm.custom.uninstalled_pack_effect"))
         assertTrue(outXml.contains("intensity"))
         assertTrue(outXml.contains("0.8"))

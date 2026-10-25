@@ -48,5 +48,10 @@ Thumbs.db
 /tools/publish_allowed.txt
 /docs/PROVENANCE.md
 /docs/FILE_FORMAT.md
+/attachments/
+/sample_pack/
+/goldmotion/
+*.zip
+*.effectspack
 /docs/THEMES.md
 /third_party/gn-src/

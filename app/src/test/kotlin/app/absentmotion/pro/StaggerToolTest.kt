@@ -1,6 +1,7 @@
 package app.absentmotion.pro
 
 import app.absentmotion.model.Scene
+import app.absentmotion.model.XmlNode
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -15,7 +16,7 @@ class StaggerToolTest {
                 <layer id="103" name="Layer 3" type="shape" startTime="0" endTime="1000"/>
             </scene>
         """.trimIndent()
-        val scene = Scene.fromXml(xml)
+        val scene = Scene(XmlNode.parse(xml))
 
         val staggered = StaggerTool.stagger(
             scene = scene,
@@ -47,7 +48,7 @@ class StaggerToolTest {
                 <layer id="202" name="L2" type="shape" startTime="200" endTime="800"/>
             </scene>
         """.trimIndent()
-        val scene = Scene.fromXml(xml)
+        val scene = Scene(XmlNode.parse(xml))
 
         val staggered = StaggerTool.stagger(
             scene = scene,

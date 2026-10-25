@@ -1,0 +1,71 @@
+#!/usr/bin/env python3
+import os
+import sys
+
+BENCHMARK_XML = """<?xml version='1.0' encoding='UTF-8' ?>
+<scene width="1080" height="1920" fps="60" totalFrames="300" background="#FF111318">
+  <layers>
+    <layer id="101" type="shape" name="Background Gradient" start="0" end="300">
+      <transform x="540" y="960" scaleX="1.0" scaleY="1.0" rotation="0" opacity="1.0" />
+      <shape kind="rectangle" width="1080" height="1920" fill="#FF1A1D24" />
+    </layer>
+    <layer id="102" type="media" name="Texture Base" start="0" end="300">
+      <transform x="540" y="960" scaleX="1.2" scaleY="1.2" rotation="0" opacity="0.4" />
+      <blend mode="screen" />
+    </layer>
+    <layer id="103" type="group" name="Nested Graphics Group" start="0" end="300">
+      <transform x="540" y="700" scaleX="1.0" scaleY="1.0" rotation="0" opacity="1.0">
+        <keyframe property="rotation" frame="0" value="0.0" />
+        <keyframe property="rotation" frame="150" value="180.0" />
+        <keyframe property="rotation" frame="300" value="360.0" />
+      </transform>
+      <layers>
+        <layer id="201" type="shape" name="Vector Star 1" start="0" end="300">
+          <transform x="0" y="0" scaleX="0.8" scaleY="0.8" rotation="45" opacity="0.9" />
+          <shape kind="star" points="5" innerRadius="120" outerRadius="280" fill="#FF00E5FF" />
+        </layer>
+        <layer id="202" type="shape" name="Vector Ring" start="0" end="300">
+          <transform x="0" y="0" scaleX="1.0" scaleY="1.0" rotation="0" opacity="0.75" />
+          <shape kind="ellipse" rx="320" ry="320" strokeWidth="12" strokeColor="#FFFF2A6D" />
+        </layer>
+      </layers>
+    </layer>
+    <layer id="104" type="text" name="Title 3D Motion" start="0" end="300">
+      <transform x="540" y="1150" z="120" scaleX="1.5" scaleY="1.5" rotationX="15" rotationY="-20" rotationZ="0" opacity="1.0">
+        <keyframe property="scaleX" frame="0" value="0.5" />
+        <keyframe property="scaleX" frame="120" value="2.2" />
+        <keyframe property="scaleX" frame="300" value="1.5" />
+        <keyframe property="z" frame="0" value="-200.0" />
+        <keyframe property="z" frame="150" value="350.0" />
+        <keyframe property="z" frame="300" value="120.0" />
+      </transform>
+      <text font="Inter-Bold" size="92" color="#FFFFFFFF">ABSENT MOTION</text>
+    </layer>
+    <layer id="105" type="text" name="Subtitle Script Overhang" start="30" end="300">
+      <transform x="540" y="1300" scaleX="1.0" scaleY="1.0" rotation="0" opacity="1.0" />
+      <text font="PlayfairDisplay-Italic" size="56" color="#FFE0E0E0">Pro Studio Edition 3.3.2</text>
+    </layer>
+    <layer id="106" type="effect" name="Heavy Bloom Adjustment" start="0" end="300">
+      <effect id="am.builtin.bloom" intensity="1.4" radius="0.04" threshold="0.5" />
+    </layer>
+    <layer id="107" type="effect" name="Chromatic Glitch Pass" start="60" end="180">
+      <effect id="gm.custom.cinematic_punch" mixAmt="0.85" contrast="1.3" saturation="1.25" />
+    </layer>
+  </layers>
+</scene>
+"""
+
+
+def main():
+    target_dir = os.path.join(os.path.dirname(__file__), "..", "tests", "benchmarks")
+    os.makedirs(target_dir, exist_ok=True)
+    out_file = os.path.join(target_dir, "heavy_benchmark_scene.xml")
+    with open(out_file, "w") as f:
+        f.write(BENCHMARK_XML.strip())
+    print(f"Benchmark scene generated successfully at: {out_file}")
+    print("Layer count: 7 root, 2 nested (9 total), 300 frames @ 60fps (5.0s)")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -112,6 +112,23 @@ fun SettingsDrawer(settings: AppSettings, drawer: androidx.compose.material3.Dra
                 stringResource(R.string.settings), Modifier.fillMaxWidth().height(50.dp).wrapContentHeight(Alignment.CenterVertically).padding(start = 11.dp),
                 color = Am.HomeInk, fontSize = 18.sp, fontWeight = FontWeight.Bold,
             )
+            if (app.absentmotion.pro.ProFeatures.isSafeMode) {
+                val context = LocalContext.current
+                Column(
+                    Modifier.padding(horizontal = 6.dp, vertical = 4.dp).fillMaxWidth().clip(PanelShape).background(Am.Warning.copy(alpha = 0.2f)).padding(12.dp)
+                ) {
+                    Text("Safe Mode Active", color = Am.HomeInk, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                    Spacer(Modifier.height(4.dp))
+                    Text("New features temporarily disabled due to startup crashes.", color = Am.HomeMid, fontSize = 12.sp)
+                    Spacer(Modifier.height(8.dp))
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = androidx.compose.foundation.layout.Arrangement.End) {
+                        TextButton(onClick = { app.absentmotion.pro.ProFeatures.setSafeMode(context, false) }) {
+                            Text("Exit Safe Mode", color = Am.HomeAccent, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+                Spacer(Modifier.height(CardGap))
+            }
             Category(R.string.settings_group_editor, HomeIcons.Pencil) {
                 ThemeRow(settings)
                 DurationRow(settings)

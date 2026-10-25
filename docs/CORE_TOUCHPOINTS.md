@@ -1,0 +1,33 @@
+# Absent Motion Pro — Core Touchpoints Log
+
+This document records all modifications made to core engine, rendering, export, and UI files.
+In accordance with Ground Rule 3, every core change is kept surgical, flag-guarded via `ProFeatures`, and verified to ensure unaffected content remains pixel-identical.
+
+---
+
+## 1. Core Touchpoint Register
+
+| Phase | Target File | Purpose | Guard Flag | Status |
+|---|---|---|---|---|
+| **Phase 0** | `app/src/main/kotlin/app/absentmotion/MainActivity.kt` | Initialize `ProFeatures` and startup stability timer | N/A | Active |
+| **Phase 0** | `app/src/main/kotlin/app/absentmotion/library/CrashLogs.kt` | Hook startup crash counter for Safe Mode guard | N/A | Active |
+| **Phase 0** | `app/src/main/kotlin/app/absentmotion/ui/home/SettingsDrawer.kt` | Safe Mode status display and reset toggle | N/A | Active |
+| **Phase 1** | `app/src/main/kotlin/app/absentmotion/export/VideoExport.kt` | Alignment, viewport rounding, and edge clamp fixes | `ProFeatures.exportEdgeLineFix` | Planned |
+| **Phase 1** | `app/src/main/kotlin/app/absentmotion/export/ExportChoices.kt` | Supported encoder dimension alignment verification | `ProFeatures.exportEdgeLineFix` | Planned |
+| **Phase 2A**| `app/src/main/kotlin/app/absentmotion/engine/EngineThread.kt` | Linear text, subpixel antialiasing, and scale-independent stem handling | `ProFeatures.textRenderFix` | Planned |
+| **Phase 2B**| `app/src/main/kotlin/app/absentmotion/engine/EngineThread.kt` | Group buffer scaling, offscreen pass skipping, trilinear downsampling | `ProFeatures.groupSharpnessFix` | Planned |
+| **Phase 3** | `app/src/main/kotlin/app/absentmotion/ui/editor/effects/EffectBrowser.kt` | Memory-efficient LQ thumbnail loader and atlas caching | `ProFeatures.effectThumbnailsLq` | Planned |
+| **Phase 4** | `app/src/main/kotlin/app/absentmotion/engine/EngineThread.kt` | Cache key verification and pre-rendered frame playback hook | `ProFeatures.preRender` | Planned |
+| **Phase 5** | `app/src/main/kotlin/app/absentmotion/model/ShapeLayer.kt` | Optional dashed stroke and vector node morph fields | `ProFeatures.newVectorTool` | Planned |
+| **Phase 6** | `app/src/main/AndroidManifest.xml` | Allowlisted WebView permissions and isolated font validation service | `ProFeatures.dafontBrowser` | Planned |
+| **Phase 7** | `app/src/main/kotlin/app/absentmotion/ui/theme/Am.kt` | Design token layer and Classic/Premium UI switch | `ProFeatures.premiumUi` | Planned |
+
+---
+
+## 2. Touchpoint Verification Protocol
+
+For every core change logged above:
+1. **Automated Reproduction:** A reproduction test must fail before the fix and pass after.
+2. **Flag Isolation:** With the feature flag set to `false`, behavior must revert to baseline without regressions.
+3. **Golden Pixel Comparison:** Non-affected standard layers and projects must render with zero pixel drift (strict golden diff).
+4. **Before/After Evidence:** Concrete diffs and test results must be appended to this document during phase execution.

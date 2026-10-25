@@ -11,6 +11,7 @@ import app.absentmotion.R
 import app.absentmotion.export.StorageFullException
 import app.absentmotion.platform.Context
 import app.absentmotion.platform.versionName
+import app.absentmotion.pro.ProFeatures
 import java.io.File
 import java.io.IOException
 import java.time.Instant
@@ -116,6 +117,7 @@ object CrashLogs {
         val previous = Thread.getDefaultUncaughtExceptionHandler()
         Thread.setDefaultUncaughtExceptionHandler { thread, error ->
             runCatching {
+                ProFeatures.onCrash(app)
                 val now = System.currentTimeMillis()
                 val what = failedDuring?.takeIf { (failed, _) -> generateSequence(error) { it.cause }.any { it === failed } }?.second ?: doing
                 folder?.let { writeCrash(it, now, crashReason(error, what), "$about\nKind: Java exception on thread ${thread.name}\nDoing: $what", error.stackTraceToString().take(MaxDetail)) }

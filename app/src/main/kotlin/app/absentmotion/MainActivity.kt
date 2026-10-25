@@ -145,6 +145,7 @@ class MainActivity : ComponentActivity() {
         templates = TemplateStore(this)
         recovery = Recovery(File(filesDir, "recovery"))
         CrashLogs.install(this)
+        app.absentmotion.pro.ProFeatures.init(this, started)
         RecoveryHandler.install(recovery) { editor?.let { it.projectId to it.scene.toXml() } }
         val reopen = savedInstanceState?.getString(OPEN_PROJECT)
         lifecycleScope.launch {
@@ -159,6 +160,7 @@ class MainActivity : ComponentActivity() {
             }
         }
         lifecycleScope.launch { kotlinx.coroutines.delay(15_000); autoBackupIfDue(applicationContext, settings) }
+        lifecycleScope.launch { kotlinx.coroutines.delay(10_000); app.absentmotion.pro.ProFeatures.onStableRunning(applicationContext) }
         lifecycleScope.launch(Dispatchers.IO) { ShapeCatalog.load(applicationContext) }
         lifecycleScope.launch(Dispatchers.IO) { app.absentmotion.ai.AiDevice.recover(applicationContext) }
         lifecycleScope.launch(Dispatchers.IO) { app.absentmotion.effectspack.PackStore.installBundledPacks(applicationContext) }

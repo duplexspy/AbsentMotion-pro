@@ -19,7 +19,7 @@ class ExportBarrierRemovalTest {
 
     @Test
     fun exportBlockOnlyBlocksInsufficientStorage() {
-        val blocked = exportBlock(StorageStatus.NotEnough(100L, 50L), Support.Supported)
+        val blocked = exportBlock(StorageStatus.NotEnough(app.absentmotion.i18n.txt(app.absentmotion.R.string.export_block_storage)), Support.Supported)
         assertEquals(app.absentmotion.i18n.txt(app.absentmotion.R.string.export_block_storage), blocked)
     }
 
