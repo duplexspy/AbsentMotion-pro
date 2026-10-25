@@ -5,7 +5,7 @@
 | **Phase 0** | Baseline & Harness (Architecture docs, ProFeatures flags, Safe Mode crash-loop guard, test suites) | `feature/phase0-baseline-harness` | **Completed** | `ProFeaturesTest`, `tools/comment_check.py` | Pass |
 | **Phase 1** | Export Black-Line Fix (Encoder alignment, viewport rounding, edge clamp, odd dimensions) | `feature/phase1-export-edge-fix` | **Completed** | `ExportEdgeTest` matrix | Pass |
 | **Phase 2A**| Text Rendering Fix: Scale & Z Artifacts (Subpixel antialiasing, stem stability, overhang bounds) | `feature/phase2a-text-scale-z` | **Completed** | `TextTortureTest` | Pass |
-| **Phase 2B**| Text Blurry After Grouping (Effective scale propagation, isolated pass bypass, sharpness audit) | `feature/phase2b-group-sharpness` | Planned | `GroupSharpnessTest` | Pending |
+| **Phase 2B**| Text Blurry After Grouping (Effective scale propagation, isolated pass bypass, sharpness audit) | `feature/phase2b-group-sharpness` | **Completed** | `GroupSharpnessTest` | Pass |
 | **Phase 3** | Effect Thumbnails Without Lag (Pre-packed LQ atlas, LRU cache, RGB_565, fast fling deferral) | `feature/phase3-fast-thumbnails` | Planned | `ThumbnailPerfTest` | Pending |
 | **Phase 4** | Pre-Render for Heavy Layers & Ranges (Non-destructive cache key, invalidation map, video/WebP intermediate) | `feature/phase4-prerender` | Planned | `PreRenderInvalidationTest` | Pending |
 | **Phase 5** | New Vector Tool & Dashed Lines (Touch-first pen/nodes, loupe, keyframable dash/gap, SVG I/O) | `feature/phase5-vector-tool` | Planned | `VectorGeometryFuzzTest` | Pending |
@@ -63,3 +63,22 @@
 - [x] Run unit tests and regression checks (`testProDebugUnitTest`, `bug_regression_check.py`).
 - [x] Build Pro debug APK (`assembleProDebug`).
 - [x] Commit Phase 2A to branch `feature/phase2a-text-scale-z`.
+
+---
+
+## Phase 2B Execution Checklist
+- [x] Investigate root causes across premature offscreen pass allocation, fixed base-resolution baking, and subpixel misalignment.
+- [x] Create `docs/GROUP_SHARPNESS_REPORT.md` documenting analysis, mathematics, and empirical results.
+- [x] Update `docs/CORE_TOUCHPOINTS.md` with touched files and guard flag `ProFeatures.groupSharpnessFix`.
+- [x] Implement offscreen pass bypass for non-isolated groups in `styles.cpp` (`DrawOne`).
+- [x] Implement cumulative effective scale propagation to offscreen buffers in `styles.cpp` (`DrawGroup`).
+- [x] Implement scale-adaptive resampling (1.0x nearest whole-pixel copy, <1.0x trilinear mipmapped downsampling, >1.0x high-res linear) in `styles.cpp` (`DrawGroup`).
+- [x] Add thread-local `gGroupSharpnessFix` and API control in `scene.h` and `styles.cpp`.
+- [x] Update `TextLayout.kt` to guard linear metrics and subpixel positioning under `groupSharpnessFix`.
+- [x] Update `StructureActions.kt` to default new group nodes to dynamicResolution.
+- [x] Create `tools/group_sharpness_test.py` with Laplacian edge variance calculation and visual contact sheet generator.
+- [x] Create `GroupSharpnessHarnessTest.kt` unit test suite covering effective scale, offscreen bypass, sampling mode, and Laplacian variance match within 5%.
+- [x] Verify zero comments policy (`python3 tools/comment_check.py`).
+- [x] Run unit tests and regression checks (`testProDebugUnitTest`, `bug_regression_check.py`, `group_sharpness_test.py`).
+- [x] Build Pro debug APK (`assembleProDebug`).
+- [x] Commit Phase 2B to branch `feature/phase2b-group-sharpness`.

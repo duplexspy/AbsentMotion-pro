@@ -23,7 +23,7 @@ private fun FontLibrary.prepareText(scene: XmlNode, fps: Int, timeMs: Int): XmlN
         if (node.name != "text") return@mapTimedLayers node
         val layer = raw.at(localTime.toInt(), localFps)
         val name = FontName.parse(layer.font)
-        val fix = ProFeatures.isEnabled(ProFeatures.textRenderFix)
+        val fix = ProFeatures.isEnabled(ProFeatures.textRenderFix) || ProFeatures.isEnabled(ProFeatures.groupSharpnessFix)
         val paint = TextPaint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
             textSize = layer.textSize.coerceAtLeast(0.01f) * 3f
             typeface = typeface(layer.font)

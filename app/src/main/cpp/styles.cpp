@@ -496,6 +496,7 @@ void DrawGroupBorders(SkCanvas* canvas, const Layer& l, float t, bool pixelEdged
 thread_local const LayerEffects* gEffects = nullptr;
 thread_local const Scene* gScene = nullptr;
 thread_local bool gWorld = false;
+thread_local bool gGroupSharpnessFix = true;
 
 int Fps() { return gScene ? gScene->fps : 30; }
 
@@ -540,11 +541,39 @@ void DrawGroup(SkCanvas* canvas, const Layer& l, double timeMs, const MediaPictu
         ~Context() { gScene = previous; }
     } context(l);
     if (l.fixedPrecompose && l.innerWidth > 0 && l.innerHeight > 0) {
-        if (auto surface = canvas->makeSurface(SkImageInfo::MakeN32Premul(l.innerWidth, l.innerHeight))) {
-            surface->getCanvas()->drawColor((SkColor)l.innerBackground);
-            DrawList(surface->getCanvas(), l.children, l.innerWidth, l.innerHeight, false, inner, pictures);
-            canvas->drawImage(surface->makeImageSnapshot(), 0, 0, SkSamplingOptions(SkFilterMode::kLinear));
-            return;
+        if (gGroupSharpnessFix) {
+            const SkMatrix matrix = canvas->getTotalMatrix();
+            float scaleX = std::sqrt(matrix.getScaleX() * matrix.getScaleX() + matrix.getSkewY() * matrix.getSkewY());
+            float scaleY = std::sqrt(matrix.getScaleY() * matrix.getScaleY() + matrix.getSkewX() * matrix.getSkewX());
+            if (!std::isfinite(scaleX) || scaleX <= 0.001f) scaleX = 1.0f;
+            if (!std::isfinite(scaleY) || scaleY <= 0.001f) scaleY = 1.0f;
+            const int targetW = std::clamp((int)std::ceil(l.innerWidth * scaleX), 1, 8192);
+            const int targetH = std::clamp((int)std::ceil(l.innerHeight * scaleY), 1, 8192);
+            if (auto surface = canvas->makeSurface(SkImageInfo::MakeN32Premul(targetW, targetH))) {
+                SkCanvas* surfCanvas = surface->getCanvas();
+                surfCanvas->scale((float)targetW / (float)l.innerWidth, (float)targetH / (float)l.innerHeight);
+                surfCanvas->drawColor((SkColor)l.innerBackground);
+                DrawList(surfCanvas, l.children, l.innerWidth, l.innerHeight, false, inner, pictures);
+                sk_sp<SkImage> snapshot = surface->makeImageSnapshot();
+                SkSamplingOptions sampling;
+                const float effScale = std::max(scaleX, scaleY);
+                if (std::abs(scaleX - 1.0f) < 0.001f && std::abs(scaleY - 1.0f) < 0.001f) {
+                    sampling = SkSamplingOptions(SkFilterMode::kNearest, SkMipmapMode::kNone);
+                } else if (effScale < 0.999f) {
+                    sampling = SkSamplingOptions(SkFilterMode::kLinear, SkMipmapMode::kLinear);
+                } else {
+                    sampling = SkSamplingOptions(SkFilterMode::kLinear, SkMipmapMode::kNone);
+                }
+                canvas->drawImageRect(snapshot, SkRect::MakeWH((float)l.innerWidth, (float)l.innerHeight), sampling);
+                return;
+            }
+        } else {
+            if (auto surface = canvas->makeSurface(SkImageInfo::MakeN32Premul(l.innerWidth, l.innerHeight))) {
+                surface->getCanvas()->drawColor((SkColor)l.innerBackground);
+                DrawList(surface->getCanvas(), l.children, l.innerWidth, l.innerHeight, false, inner, pictures);
+                canvas->drawImage(surface->makeImageSnapshot(), 0, 0, SkSamplingOptions(SkFilterMode::kLinear));
+                return;
+            }
         }
     }
     if (l.innerBackground >> 24) canvas->drawColor((SkColor)l.innerBackground);
@@ -946,7 +975,8 @@ void DrawOne(SkCanvas* canvas, const std::vector<Layer>& siblings, const Layer& 
             }
         }
     };
-    if (!group && !decorated && !blended && (opacity >= 1 || !overlaps)) {
+    const bool groupNeedsIsolation = group && (!gGroupSharpnessFix || l.fixedPrecompose || opacity < 0.999f || decorated || blended);
+    if ((!group && !decorated && !blended && (opacity >= 1 || !overlaps)) || (group && gGroupSharpnessFix && !groupNeedsIsolation)) {
         DrawContent(canvas, siblings, l, timeMs, opacity, false, pictures, repeated ? &copies : nullptr);
         centredBorders(opacity);
     } else {
@@ -977,6 +1007,9 @@ void SetLayerEffects(const LayerEffects* effects, const Scene* scene, bool world
 }
 
 bool WorldView() { return gWorld; }
+
+void SetGroupSharpnessFix(bool on) { gGroupSharpnessFix = on; }
+bool GroupSharpnessFixOn() { return gGroupSharpnessFix; }
 
 void ParseStyle(const XmlNode& n, Layer* l) {
     l->blending = AttrOf(n, "blending");

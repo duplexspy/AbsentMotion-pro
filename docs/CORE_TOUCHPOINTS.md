@@ -20,7 +20,10 @@ In accordance with Ground Rule 3, every core change is kept surgical, flag-guard
 | **Phase 1** | `app/src/main/kotlin/app/absentmotion/export/DeviceCapabilities.kt` | Encoder dimension alignment support detection | `ProFeatures.exportEdgeLineFix` | Active |
 | **Phase 2A**| `app/src/main/kotlin/app/absentmotion/fonts/TextLayout.kt` | Linear text, subpixel positioning, disabled hinting, overhang padding | `ProFeatures.textRenderFix` | Active |
 | **Phase 2A**| `app/src/main/cpp/text.cpp` | Linear metrics, subpixel glyphs, no hinting, grayscale edging, ink bounds | `ProFeatures.textRenderFix` | Active |
-| **Phase 2B**| `app/src/main/kotlin/app/absentmotion/engine/EngineThread.kt` | Group buffer scaling, offscreen pass skipping, trilinear downsampling | `ProFeatures.groupSharpnessFix` | Planned |
+| **Phase 2B**| `app/src/main/cpp/styles.cpp` | Offscreen pass bypass, effective scale propagation, trilinear/nearest sampling | `ProFeatures.groupSharpnessFix` | Active |
+| **Phase 2B**| `app/src/main/cpp/scene.h` | Native `SetGroupSharpnessFix` and `GroupSharpnessFixOn` API declarations | `ProFeatures.groupSharpnessFix` | Active |
+| **Phase 2B**| `app/src/main/kotlin/app/absentmotion/fonts/TextLayout.kt` | Dual guard check for text linear metrics and subpixel positioning | `ProFeatures.groupSharpnessFix` | Active |
+| **Phase 2B**| `app/src/main/kotlin/app/absentmotion/editor/StructureActions.kt` | Default dynamicResolution precomposition on newly grouped scenes | `ProFeatures.groupSharpnessFix` | Active |
 | **Phase 3** | `app/src/main/kotlin/app/absentmotion/ui/editor/effects/EffectBrowser.kt` | Memory-efficient LQ thumbnail loader and atlas caching | `ProFeatures.effectThumbnailsLq` | Planned |
 | **Phase 4** | `app/src/main/kotlin/app/absentmotion/engine/EngineThread.kt` | Cache key verification and pre-rendered frame playback hook | `ProFeatures.preRender` | Planned |
 | **Phase 5** | `app/src/main/kotlin/app/absentmotion/model/ShapeLayer.kt` | Optional dashed stroke and vector node morph fields | `ProFeatures.newVectorTool` | Planned |

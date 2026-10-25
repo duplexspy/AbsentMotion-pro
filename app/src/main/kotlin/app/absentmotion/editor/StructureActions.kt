@@ -102,6 +102,7 @@ private fun Scene.groupNode(attrs: Map<String, String>, children: List<XmlNode>,
             linkedMapOf(
                 "title" to "", "width" to "$width", "height" to "$height", "exportWidth" to "$width", "exportHeight" to "$height",
                 "bgcolor" to "#00000000", "totalTime" to "$totalTime", "fps" to "$fps", "retime" to "off",
+                "precompose" to if (app.absentmotion.pro.ProFeatures.isEnabled(app.absentmotion.pro.ProFeatures.groupSharpnessFix)) "dynamicResolution" else "off",
             ),
             children,
         ),

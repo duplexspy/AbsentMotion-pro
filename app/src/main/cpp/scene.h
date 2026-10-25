@@ -281,5 +281,7 @@ void DrawScene(SkCanvas* canvas, const Scene& scene, double timeMs, const MediaP
                const LayerEffects* effects = nullptr);
 void SetLayerEffects(const LayerEffects* effects, const Scene* scene, bool world = false);
 bool WorldView();
+void SetGroupSharpnessFix(bool on);
+bool GroupSharpnessFixOn();
 
 }
