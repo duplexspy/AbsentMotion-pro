@@ -102,6 +102,7 @@ fun SettingsDrawer(settings: AppSettings, drawer: androidx.compose.material3.Dra
     var language by remember { mutableStateOf(false) }
     var demoNote by remember { mutableStateOf(false) }
     var packsScreen by remember { mutableStateOf(false) }
+    var studioScreen by remember { mutableStateOf(false) }
     ModalDrawerSheet(
         drawer, Modifier.width(280.dp), drawerShape = RectangleShape, drawerContainerColor = Am.HomeDrawer,
         windowInsets = WindowInsets(0),
@@ -115,6 +116,7 @@ fun SettingsDrawer(settings: AppSettings, drawer: androidx.compose.material3.Dra
                 ThemeRow(settings)
                 DurationRow(settings)
                 SwitchRow(stringResource(R.string.settings_vibration), settings.vibration, enabled = true) { settings.vibration = it }
+                SwitchRow(stringResource(R.string.settings_pro_tools), settings.proToolsEnabled, enabled = true) { settings.proToolsEnabled = it }
                 Divider(10.dp)
                 ChoicesBlock(R.string.settings_emoji) {
                     Choices(listOf(R.string.settings_emoji_system, R.string.settings_emoji_android), if (settings.androidEmoji) 1 else 0) { settings.androidEmoji = it == 1 }
@@ -145,6 +147,10 @@ fun SettingsDrawer(settings: AppSettings, drawer: androidx.compose.material3.Dra
             }
             LinkRow(stringResource(R.string.settings_effects_packs)) { packsScreen = true }
             Spacer(Modifier.height(CardGap))
+            if (settings.proToolsEnabled) {
+                LinkRow(stringResource(R.string.pro_effects_pack_studio)) { studioScreen = true }
+                Spacer(Modifier.height(CardGap))
+            }
             LinkRow(stringResource(R.string.settings_language), currentLanguage(LocalContext.current).nativeName) { language = true }
             Spacer(Modifier.height(CardGap))
             LinkRow(stringResource(R.string.settings_help)) { help = true }
@@ -159,6 +165,7 @@ fun SettingsDrawer(settings: AppSettings, drawer: androidx.compose.material3.Dra
     if (about) AboutScreen { about = false }
     if (crashLogs) CrashLogsScreen { crashLogs = false }
     if (packsScreen) app.absentmotion.effectspack.PackManagerScreen { packsScreen = false }
+    if (studioScreen) app.absentmotion.pro.EffectsPackStudio { studioScreen = false }
     if (demoNote) AlertDialog(
         onDismissRequest = { demoNote = false },
         title = { Text(stringResource(R.string.demo_mode_is_on), color = Am.Navy) },

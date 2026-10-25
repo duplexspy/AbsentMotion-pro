@@ -91,6 +91,12 @@ class AppSettings(private val context: Context) {
         get() = keepMediaCopiesState
         set(value) { keepMediaCopiesState = value; prefs.edit().putBoolean("keepMediaCopies", value).apply() }
 
+    private var proToolsEnabledState by mutableStateOf(prefs.getBoolean("proToolsEnabled", true))
+
+    var proToolsEnabled: Boolean
+        get() = proToolsEnabledState
+        set(value) { proToolsEnabledState = value; prefs.edit().putBoolean("proToolsEnabled", value).apply() }
+
     private var weeklyBackupState by mutableStateOf(prefs.getBoolean("weeklyBackup", false))
 
     var weeklyBackup: Boolean
