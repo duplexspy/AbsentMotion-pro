@@ -61,7 +61,7 @@ internal fun engineProblemText(problem: String): Int = when {
 }
 
 internal fun engineProblemDetails(version: String, facts: PhoneFacts, problem: String): String = listOf(
-    "AbsentMotion $version (${if (Tier.compatible) "Compatible" else "Latest"})",
+    "Absent Motion Pro $version (${if (Tier.compatible) "Compatible" else "Latest"})",
     "Device: ${facts.device}",
     "Android: ${facts.android}",
     "Graphics chip: ${facts.gpu ?: "unknown"}",
@@ -122,7 +122,7 @@ fun UnsupportedPhone(problem: String, onClose: () -> Unit) {
                 Action(stringResource(R.string.unsupported_requirements), filled = false) { runCatching { links.openUri(HOME_PAGE) } }
                 Action(stringResource(R.string.unsupported_copy), filled = false) {
                     val shown = facts ?: return@Action
-                    context.getSystemService(ClipboardManager::class.java)?.setPrimaryClip(ClipData.newPlainText("AbsentMotion", engineProblemDetails(version, shown, problem)))
+                    context.getSystemService(ClipboardManager::class.java)?.setPrimaryClip(ClipData.newPlainText("Absent Motion Pro", engineProblemDetails(version, shown, problem)))
                     Toast.makeText(context, context.getString(R.string.unsupported_copied), Toast.LENGTH_SHORT).show()
                 }
                 Action(stringResource(R.string.action_close), filled = true, onClick = onClose)

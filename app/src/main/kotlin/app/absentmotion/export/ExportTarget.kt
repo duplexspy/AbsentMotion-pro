@@ -30,7 +30,8 @@ class OpenExport(val uri: Uri, val fd: FileDescriptor, private val close: () -> 
     }
 }
 
-const val AppFolder = "AbsentMotion"
+const val AppFolder = "AbsentMotionPro"
+const val LegacyAppFolder = "AbsentMotion"
 
 const val MinFreeBytes = 32L shl 20
 

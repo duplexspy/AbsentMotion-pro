@@ -65,6 +65,7 @@ internal object Updates {
     }
 
     fun check(context: Context, settings: AppSettings, manual: Boolean) {
+        if (RELEASES.isBlank()) return
         if (manual && checking) return
         if (manual) checking = true
         val current = installed(context)
@@ -85,12 +86,13 @@ internal object Updates {
     }
 
     private fun fetchLatest(): Release? {
+        if (RELEASES.isBlank()) return null
         val connection = URI(RELEASES).toURL().openConnection() as HttpURLConnection
         try {
             connection.connectTimeout = TIMEOUT_MS
             connection.readTimeout = TIMEOUT_MS
             connection.setRequestProperty("Accept", "application/vnd.github+json")
-            connection.setRequestProperty("User-Agent", "AbsentMotion")
+            connection.setRequestProperty("User-Agent", "Absent Motion Pro")
             if (connection.responseCode != HttpURLConnection.HTTP_OK) return null
             return parseReleases(connection.inputStream.use { it.readAtMost(MAX_BYTES) }.decodeToString())
         } finally {
@@ -98,7 +100,7 @@ internal object Updates {
         }
     }
 
-    private val RELEASES = "https://api.github.com/repos/" + HOME_PAGE.removePrefix("https://github.com/") + "/releases?per_page=30"
+    const val RELEASES = ""
     private const val TIMEOUT_MS = 5_000
     private const val MAX_BYTES = 4 shl 20
 }

@@ -94,6 +94,7 @@ internal fun BackupRows(settings: AppSettings, onRestored: () -> Unit) {
     Column(Modifier.fillMaxWidth()) {
         ActionRow(stringResource(R.string.backup_all_projects)) { run(txt(R.string.backup_backing_up_title), txt(R.string.backup_result_title), txt(R.string.backup_stopped)) { backUp(context, it) } }
         ActionRow(stringResource(R.string.backup_restore)) { picker.launch(arrayOf("*/*")) }
+        ActionRow(stringResource(R.string.backup_migrate_legacy)) { run(txt(R.string.backup_migrating_title), txt(R.string.backup_migrate_result_title), txt(R.string.backup_stopped), onRestored) { migrateLegacyBackups(context, it) } }
         SwitchRow(stringResource(R.string.backup_weekly), settings.weeklyBackup, enabled = true) { settings.weeklyBackup = it }
     }
     task?.let { current ->
@@ -118,21 +119,39 @@ internal fun BackupRows(settings: AppSettings, onRestored: () -> Unit) {
     }
 }
 
-internal fun isWeeklyBackupName(name: String?) = name != null && name.startsWith(WEEKLY_PREFIX) && name.contains("." + Backup.EXTENSION)
+private const val WEEKLY_PREFIX = "AbsentMotion-weekly-"
+private const val WEEKLY_PREFIX_PRO = "AbsentMotionPro-weekly-"
+
+internal fun isWeeklyBackupName(name: String?) = name != null && (name.startsWith(WEEKLY_PREFIX) || name.startsWith(WEEKLY_PREFIX_PRO)) && name.contains("." + Backup.EXTENSION)
 
 private fun displayName(context: Context, uri: Uri): String? =
     context.contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { if (it.moveToFirst()) it.getString(0) else null }
 
-private const val WEEKLY_PREFIX = "AbsentMotion-weekly-"
-
 private fun stamp() = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd-HHmm"))
+
+private fun migrateLegacyBackups(context: Context, task: BackupTask): List<UiText> {
+    val legacyDir = java.io.File(android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOCUMENTS), "AbsentMotion")
+    if (!legacyDir.isDirectory) return listOf(txt(R.string.backup_migrate_none))
+    val files = legacyDir.listFiles { f -> f.isFile && f.extension == Backup.EXTENSION }.orEmpty()
+    if (files.isEmpty()) return listOf(txt(R.string.backup_migrate_none))
+    val targetDir = java.io.File(android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOCUMENTS), "AbsentMotionPro")
+    targetDir.mkdirs()
+    var count = 0
+    files.forEachIndexed { i, file ->
+        val dest = java.io.File(targetDir, file.name)
+        if (!dest.exists()) file.copyTo(dest, overwrite = true)
+        count++
+        task.report((i + 1).toFloat() / files.size)
+    }
+    return listOf(txt(R.string.backup_migrate_found, count))
+}
 
 private fun backUp(context: Context, task: BackupTask): List<UiText> {
     val root = context.filesDir
     val ai = context.getExternalFilesDir(null)?.resolve("ai")
     val needed = Backup.files(root, includeMedia = true, ai).sumOf { it.second.length() }
     if (needed + (50L shl 20) > freeSpace()) return listOf(txt(R.string.backup_no_space, formatBytes(needed)))
-    val name = "AbsentMotion-backup-${stamp()}.${Backup.EXTENSION}"
+    val name = "AbsentMotionPro-backup-${stamp()}.${Backup.EXTENSION}"
     val uri = MediaStoreExport(context).save(null, name, "application/octet-stream") { out ->
         Backup.write(root, out, includeMedia = true, ai) { done, total -> task.report(done.toFloat() / total) }
     }

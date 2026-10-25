@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="fastlane/metadata/android/en-US/images/icon.png" alt="AbsentMotion" width="128" height="128">
+  <img src="fastlane/metadata/android/en-US/images/icon.png" alt="Absent Motion Pro" width="128" height="128">
 </p>
 
-# AbsentMotion
+# Absent Motion Pro
 
 <p align="center">
   <a href="https://comett1225.github.io/AbsentMotion/"><b>Download for your phone</b></a>
@@ -16,7 +16,7 @@
   <a href="https://github.com/Comett1225/AbsentMotion/releases">All versions</a>
 </p>
 
-AbsentMotion is a free, open-source alternative to CapCut and Alight Motion: a motion graphics, animation and video
+Absent Motion Pro is a free, open-source alternative to CapCut and Alight Motion: a motion graphics, animation and video
 editor for Android phones. Everything runs on your phone and it works without an internet connection. There is no
 subscription, no account and no advertising, and your projects never leave your device.
 
@@ -104,7 +104,7 @@ AbsentMotion is a young project. Please know these before you rely on it:
 
 ## File compatibility
 
-AbsentMotion can open scene XML files and `.amproj` packages exported from Alight Motion, and it exports scene XML in the same format. Effects that AbsentMotion does not include are kept in the file and are not drawn. AbsentMotion saves its own packages as `.absproj`. AbsentMotion is an independent project. It is not affiliated with, endorsed by or sponsored by Alight Creative, Alight Motion, ByteDance or CapCut. Alight Motion and CapCut are trademarks of their owners.
+Absent Motion Pro can open scene XML files and `.amproj` packages exported from Alight Motion, and it exports scene XML in the same format. Effects that Absent Motion Pro does not include are kept in the file and are not drawn. Absent Motion Pro saves its own packages as `.absproj`. Absent Motion Pro is an independent project. It is not affiliated with, endorsed by or sponsored by Alight Creative, Alight Motion, ByteDance or CapCut. Alight Motion and CapCut are trademarks of their owners.
 
 ## Building
 

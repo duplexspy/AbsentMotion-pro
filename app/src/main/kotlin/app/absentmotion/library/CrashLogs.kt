@@ -110,7 +110,7 @@ object CrashLogs {
         val app = context.applicationContext
         activities = app.getSystemService(ActivityManager::class.java)
         val code = runCatching { app.packageManager.getPackageInfo(app.packageName, 0).longVersionCode }.getOrDefault(0L)
-        about = "AbsentMotion ${versionName(app)} ($code)\nAndroid ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT}), ${Build.MANUFACTURER} ${Build.MODEL}"
+        about = "Absent Motion Pro ${versionName(app)} ($code)\nAndroid ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT}), ${Build.MANUFACTURER} ${Build.MODEL}"
         folder = File(app.filesDir, "crashlogs")
         publish()
         val previous = Thread.getDefaultUncaughtExceptionHandler()

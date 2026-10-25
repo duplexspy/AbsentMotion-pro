@@ -85,6 +85,13 @@ android {
             buildConfigField("boolean", "COMPATIBLE", "true")
             externalNativeBuild { cmake { arguments += "-DAM_COMPAT=ON" } }
         }
+        create("pro") {
+            dimension = "distribution"
+            applicationId = "app.absentmotion.pro"
+            minSdk = 28
+            buildConfigField("boolean", "COMPATIBLE", "true")
+            externalNativeBuild { cmake { arguments += "-DAM_COMPAT=ON" } }
+        }
     }
 
     sourceSets {
@@ -92,7 +99,14 @@ android {
             kotlin.directories += "src/foss/kotlin"
             assets.directories += "src/foss/assets"
         }
+        named("pro") {
+            kotlin.directories += "src/foss/kotlin"
+            assets.directories += "src/foss/assets"
+            manifest.srcFile("src/compat/AndroidManifest.xml")
+            res.directories += "src/compat/res"
+        }
         named("testCompat") { kotlin.directories += "src/testFoss/kotlin" }
+        named("testPro") { kotlin.directories += "src/testFoss/kotlin" }
     }
 }
 
