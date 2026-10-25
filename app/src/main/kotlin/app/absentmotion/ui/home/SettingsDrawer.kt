@@ -101,6 +101,7 @@ fun SettingsDrawer(settings: AppSettings, drawer: androidx.compose.material3.Dra
     var crashLogs by remember { mutableStateOf(false) }
     var language by remember { mutableStateOf(false) }
     var demoNote by remember { mutableStateOf(false) }
+    var packsScreen by remember { mutableStateOf(false) }
     ModalDrawerSheet(
         drawer, Modifier.width(280.dp), drawerShape = RectangleShape, drawerContainerColor = Am.HomeDrawer,
         windowInsets = WindowInsets(0),
@@ -142,6 +143,8 @@ fun SettingsDrawer(settings: AppSettings, drawer: androidx.compose.material3.Dra
             Category(R.string.settings_group_backup, ChromeIcons.SavePreset) {
                 BackupRows(settings, onRestored)
             }
+            LinkRow(stringResource(R.string.settings_effects_packs)) { packsScreen = true }
+            Spacer(Modifier.height(CardGap))
             LinkRow(stringResource(R.string.settings_language), currentLanguage(LocalContext.current).nativeName) { language = true }
             Spacer(Modifier.height(CardGap))
             LinkRow(stringResource(R.string.settings_help)) { help = true }
@@ -155,6 +158,7 @@ fun SettingsDrawer(settings: AppSettings, drawer: androidx.compose.material3.Dra
     if (help) HelpScreen { help = false }
     if (about) AboutScreen { about = false }
     if (crashLogs) CrashLogsScreen { crashLogs = false }
+    if (packsScreen) app.absentmotion.effectspack.PackManagerScreen { packsScreen = false }
     if (demoNote) AlertDialog(
         onDismissRequest = { demoNote = false },
         title = { Text(stringResource(R.string.demo_mode_is_on), color = Am.Navy) },

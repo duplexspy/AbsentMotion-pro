@@ -23,6 +23,7 @@ data class EffectParam(
     val layerTime: Boolean = false,
     val after: String? = null,
     val legacyDefault: String? = null,
+    val sectionHeader: String? = null,
 ) {
     val type: String get() = when (kind) { "point" -> "vec2"; "color" -> "color"; "switch" -> "bool"; "text" -> "string"; else -> "float" }
     val missingDefault: String get() = legacyDefault ?: default
@@ -79,6 +80,7 @@ data class EffectDefinition(
     val since: String? = null,
     val presets: List<EffectPreset> = emptyList(),
     val customThumb: String? = null,
+    val group: String? = null,
 ) {
     val available: Boolean get() = status == "ok"
     val thumbnail: String get() = customThumb ?: "thumb/$key.webp"

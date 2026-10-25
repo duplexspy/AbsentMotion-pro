@@ -182,7 +182,9 @@ private fun EffectHeader(state: EditorState, index: Int, effect: XmlNode, defini
     var help by remember { mutableStateOf(false) }
     Row(Modifier.fillMaxWidth().height(37.dp).clickable { state.effectIndex = -1 }.padding(start = 3.dp, end = 4.dp), verticalAlignment = Alignment.CenterVertically) {
         Icon(EffectIcons.Expanded, null, Modifier.padding(start = 8.dp).size(18.dp).alpha(0.9f), tint = Am.OnDark)
-        Text(definition?.name ?: effect["id"]?.substringAfterLast('.') ?: "", Modifier.weight(1f).padding(start = 6.dp, end = 4.dp), color = Am.OnDark, fontSize = 14.sp, maxLines = 1)
+        val isMissing = definition == null && effect["id"]?.startsWith("gm.custom.") == true
+        val nameText = (definition?.name ?: effect["id"]?.substringAfterLast('.') ?: "") + if (isMissing) " (missing pack)" else ""
+        Text(nameText, Modifier.weight(1f).padding(start = 6.dp, end = 4.dp), color = if (isMissing) Am.Warning else Am.OnDark, fontSize = 14.sp, maxLines = 1)
         if (definition != null) Box(Modifier.size(36.dp).clickable { help = true }, contentAlignment = Alignment.Center) {
             Icon(ExportIcons.Help, stringResource(R.string.effect_help), Modifier.size(22.dp), tint = Am.OnDark)
         }
@@ -223,7 +225,9 @@ private fun EffectListRow(state: EditorState, reorder: Reorder, index: Int, coun
         Row(Modifier.weight(1f).fillMaxHeight().alpha(if (definition?.available == true && effect["locallyApplied"] != "true") 1f else 0.35f)
             .clickable { state.effectIndex = index }.padding(start = 11.dp), verticalAlignment = Alignment.CenterVertically) {
             Icon(EffectIcons.Expand, null, Modifier.size(18.dp).alpha(0.3f), tint = Am.OnDark)
-            Text(definition?.name ?: effect["id"]?.substringAfterLast('.') ?: "", Modifier.padding(start = 6.dp), color = Am.OnDark, fontSize = 14.sp, maxLines = 1)
+            val isMissing = definition == null && effect["id"]?.startsWith("gm.custom.") == true
+            val nameText = (definition?.name ?: effect["id"]?.substringAfterLast('.') ?: "") + if (isMissing) " (missing pack)" else ""
+            Text(nameText, Modifier.padding(start = 6.dp), color = if (isMissing) Am.Warning else Am.OnDark, fontSize = 14.sp, maxLines = 1)
         }
         Icon(if (visible) EffectIcons.Eye else EffectIcons.EyeOff, stringResource(R.string.effects_visibility), Modifier.width(36.dp).clickable {
             state.editSelected { it.withEffect(index) { node -> node.with("hidden", if (visible) "true" else null) } }

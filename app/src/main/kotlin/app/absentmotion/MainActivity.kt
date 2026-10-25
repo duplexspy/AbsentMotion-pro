@@ -289,8 +289,46 @@ class MainActivity : ComponentActivity() {
                     val job = coroutineContext.job
                     val importer = Importer.forApp(applicationContext, store)
                     for (uri in uris) try {
-                        reports += importer.import { contentResolver.openInputStream(uri)?.let { stoppable(it, job) } }.map {
-                            if (!it.template) it else templates.adopt(store, it.id, engine)?.let { id -> it.copy(id = id) } ?: it.copy(template = false)
+                        val sniff = contentResolver.openInputStream(uri)?.use { it.readAtMost(1024) } ?: ByteArray(0)
+                        val isZip = sniff.size >= 2 && sniff[0] == 'P'.code.toByte() && sniff[1] == 'K'.code.toByte()
+                        var handled = false
+                        if (isZip) {
+                            val hasManifest = runCatching {
+                                contentResolver.openInputStream(uri)?.let { java.util.zip.ZipInputStream(it) }?.use { zip ->
+                                    var found = false
+                                    while (true) {
+                                        val entry = zip.nextEntry ?: break
+                                        if (entry.name == "manifest.json" || entry.name.endsWith("/manifest.json")) {
+                                            found = true
+                                            break
+                                        }
+                                        zip.closeEntry()
+                                    }
+                                    found
+                                }
+                            }.getOrNull() == true
+                            if (hasManifest) {
+                                contentResolver.openInputStream(uri)?.use { input ->
+                                    app.absentmotion.effectspack.PackStore.importZip(applicationContext, input)
+                                }
+                                app.absentmotion.effectspack.PackCatalog.refresh(applicationContext)
+                                handled = true
+                            }
+                        } else {
+                            val textStart = sniff.toString(Charsets.UTF_8).removePrefix("\uFEFF").trimStart()
+                            if (textStart.startsWith("<") && textStart.contains("<effect") && (textStart.contains("<params") || textStart.contains("<param") || textStart.contains("glsl="))) {
+                                val fullText = contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() } ?: ""
+                                if (fullText.isNotBlank()) {
+                                    app.absentmotion.effectspack.PackStore.importSingleXml(applicationContext, fullText)
+                                    app.absentmotion.effectspack.PackCatalog.refresh(applicationContext)
+                                    handled = true
+                                }
+                            }
+                        }
+                        if (!handled) {
+                            reports += importer.import { contentResolver.openInputStream(uri)?.let { stoppable(it, job) } }.map {
+                                if (!it.template) it else templates.adopt(store, it.id, engine)?.let { id -> it.copy(id = id) } ?: it.copy(template = false)
+                            }
                         }
                     } catch (e: kotlinx.coroutines.CancellationException) {
                         throw e

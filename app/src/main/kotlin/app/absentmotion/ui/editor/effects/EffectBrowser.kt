@@ -188,14 +188,24 @@ fun EffectBrowser(state: EditorState) {
                 else itemsIndexed(VoicePresets) { i, preset -> AudioTile(stringResource(preset.name), i, effects.any { it.kind == FxKind.Voice } || effects.fits(FxKind.Voice)) { applyVoice(preset) } }
             }
         } else if (searching || category != null) {
-            val results = if (audio) emptyList() else if (searching) catalog.search(query) else catalog.listed(category).sortedBy { it.name.lowercase() }
+            val results = if (audio) emptyList() else if (searching) catalog.search(query) else catalog.listed(category).let { list -> if (category == "packs") list else list.sortedBy { it.name.lowercase() } }
             val actions = if (searching || category == "ai") AiAction.entries.filter { it.offered && matchesSearch(query, stringResource(it.title)) } else emptyList()
             val presets = if (audio) emptyList() else catalog.definitions.flatMap { d -> d.presets.map { d to it } }
                 .filter { (d, p) -> if (searching) query.isNotBlank() && matchesSearch(query, p.name) else d.category == category }
             LazyVerticalGrid(GridCells.Fixed(3), Modifier.fillMaxSize(), contentPadding = PaddingValues(10.dp)) {
                 items(actions, key = { "ai-${it.name}" }) { action -> AiTile(action, state.selected, ai) }
                 items(presets, key = { (d, p) -> "preset-${d.id}-${p.slug}" }) { (d, p) -> PresetTile(catalog, d, p) { add(d, p) } }
-                items(results, key = { it.id }) { effect -> EffectTile(catalog, effect, 100f, { pick(effect) }, { detail = effect }, effect.id in favourites) }
+                if (category == "packs" && !searching) {
+                    val grouped = results.groupBy { it.group ?: "Custom" }
+                    grouped.forEach { (grp, effs) ->
+                        item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(3) }, key = "hdr-$grp") {
+                            Text(grp, Modifier.fillMaxWidth().padding(start = 6.dp, top = 12.dp, bottom = 4.dp), color = Am.Accent, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                        }
+                        items(effs, key = { it.id }) { effect -> EffectTile(catalog, effect, 100f, { pick(effect) }, { detail = effect }, effect.id in favourites) }
+                    }
+                } else {
+                    items(results, key = { it.id }) { effect -> EffectTile(catalog, effect, 100f, { pick(effect) }, { detail = effect }, effect.id in favourites) }
+                }
             }
         } else {
             Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
