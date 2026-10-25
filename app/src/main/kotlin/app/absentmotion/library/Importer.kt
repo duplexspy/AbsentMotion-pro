@@ -308,7 +308,7 @@ class Importer(
         }
 
         fun forApp(context: Context, store: ProjectStore): Importer {
-            val catalog = EffectCatalog.read(context)
+            val catalog = app.absentmotion.effectspack.PackCatalog.mergeInto(EffectCatalog.read(context), context)
             val fonts = FontLibrary(context)
             return Importer(
                 store,

@@ -130,9 +130,26 @@ class EngineThread(private val background: Int, context: Context? = null) {
                 pendingScene.fontsChanged(); pictureRevision.value++; requestRender()
             }
         } }
+        context?.let { app -> mediaScope.launch {
+            app.absentmotion.effectspack.PackCatalog.revision.collect { rev ->
+                if (rev > 0) reloadEffects()
+            }
+        } }
     }
+
+    fun reloadEffects() {
+        val app = context ?: return
+        mediaScope.launch {
+            val catalog = app.absentmotion.effectspack.PackCatalog.mergeInto(EffectCatalog.read(app), app)
+            effectCatalog.value = withContext(dispatcher) {
+                if (closed) catalog else catalog.loadInto { runCatching { engine().loadEffect(it) }.getOrElse { e -> "shader error: ${e.message}" } }
+            }
+            withContext(dispatcher) { renderNow() }
+        }
+    }
+
     private val effectJob = context?.let { app -> mediaScope.launch {
-        val catalog = EffectCatalog.read(app)
+        val catalog = app.absentmotion.effectspack.PackCatalog.mergeInto(EffectCatalog.read(app), app)
         effectCatalog.value = withContext(dispatcher) {
             if (closed) catalog else catalog.loadInto { runCatching { engine().loadEffect(it) }.getOrElse { e -> "shader error: ${e.message}" } }
         }

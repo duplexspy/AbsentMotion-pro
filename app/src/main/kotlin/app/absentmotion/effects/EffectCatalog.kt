@@ -10,12 +10,12 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.io.InputStream
 
-val EffectCategories: List<Pair<String, String>> = EffectCatalog.Categories.toList() + ("ai" to "AI")
+val EffectCategories: List<Pair<String, String>> = EffectCatalog.Categories.toList() + ("ai" to "AI") + ("packs" to "Packs")
 
 data class EffectCatalog(
     val definitions: List<EffectDefinition> = emptyList(),
     val message: String? = null,
-    private val open: ((String) -> InputStream)? = null,
+    val open: ((String) -> InputStream)? = null,
     val newest: Set<String> = emptySet(),
     val categoryNames: Map<String, String> = emptyMap(),
 ) {
