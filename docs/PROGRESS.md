@@ -10,7 +10,27 @@
 | **Phase 4** | Pre-Render for Heavy Layers & Ranges (Non-destructive cache key, invalidation map, video/WebP intermediate) | `feature/phase4-prerender` | **Completed** | `PreRenderInvalidationTest` | Pass |
 | **Phase 5** | New Vector Tool & Dashed Lines (Touch-first pen/nodes, loupe, keyframable dash/gap, SVG I/O) | `feature/phase5-vector-tool` | **Completed** | `VectorToolHarnessTest` | Pass |
 | **Phase 6** | DaFont Browser & Secure Importer (Hardened allowlisted WebView, isolated `:fontcheck` service) | `feature/phase6-dafont-browser` | **Completed** | `FontSecurityAndImportTest` | Pass |
-| **Phase 7** | Premium UI Polish (Design tokens, Classic/Premium switch, polished touch targets & sheets) | `feature/phase7-premium-ui` | Planned | UI Contrast & Regression Goldens | Pending |
+| **Phase 7** | Premium UI Polish (Design tokens, Classic/Premium switch, polished touch targets & sheets) | `feature/phase7-premium-ui` | **Completed** | `PremiumUiHarnessTest` | Pass |
+
+---
+
+## Phase 7 Execution Checklist
+- [x] Create `docs/UI_DESIGN_SYSTEM.md` establishing 4/8 dp grid, 8-16 dp radii, 4-tier surface tokens, and contrast specifications.
+- [x] Create `docs/PREMIUM_UI_REPORT.md` documenting design token architecture, contrast calculations, touch targets, and component polish.
+- [x] Update `docs/CORE_TOUCHPOINTS.md` with touched files and guard flag `ProFeatures.premiumUi`.
+- [x] Implement `ProDesignTokens.kt` with design tokens, relative luminance math, contrast calculator, `BottomSheetDragHandle`, `ShimmerSkeleton`, and `PremiumEmptyState`.
+- [x] Implement `Palette.Premium` in `Am.kt` with dark-first palette and register in `Palette.BuiltIn`.
+- [x] Update `AppSettings.kt` with `appearanceMode` (Classic/Premium), `isPremiumUi`, and dynamic theme switching.
+- [x] Update `SettingsDrawer.kt` with Appearance (Classic/Premium) switch row.
+- [x] Refine bottom sheets in `MotionSheets.kt`, `VoiceSheet.kt`, `CaptionsSheet.kt`, and `NewProjectSheet.kt` with centered pill drag handles.
+- [x] Refine timeline clips in `Timeline.kt` with $6\text{ dp}$ corner radius in Premium mode.
+- [x] Refine keyframe diamonds in `Timeline.kt` with selection glow and crisp anti-aliased geometry.
+- [x] Refine selection handles in `Preview.kt` with $48\text{ dp}$ touch bounds and high-contrast dual ring outlines.
+- [x] Refine empty states in `HomeScreen.kt` with `PremiumEmptyState`.
+- [x] Create `PremiumUiHarnessTest.kt` unit test suite covering contrast ratios ($\ge 4.5:1$), touch target minimums ($\ge 48\text{ dp}$), grid spacing, radii hierarchy, palette tokens, and Safe Mode reversion.
+- [x] Run unit tests and regression checks (`PremiumUiHarnessTest`, `bug_regression_check.py`).
+- [x] Build Pro debug APK (`assembleProDebug`).
+- [x] Verify zero comments policy (`python3 tools/comment_check.py`).
 
 ---
 

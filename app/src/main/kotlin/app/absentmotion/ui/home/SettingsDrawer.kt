@@ -132,6 +132,10 @@ fun SettingsDrawer(settings: AppSettings, drawer: androidx.compose.material3.Dra
                 Spacer(Modifier.height(CardGap))
             }
             Category(R.string.settings_group_editor, HomeIcons.Pencil) {
+                if (ProFeatures.isEnabled(ProFeatures.premiumUi)) {
+                    AppearanceRow(settings)
+                    Divider(10.dp)
+                }
                 ThemeRow(settings)
                 DurationRow(settings)
                 SwitchRow(stringResource(R.string.settings_vibration), settings.vibration, enabled = true) { settings.vibration = it }
@@ -401,6 +405,20 @@ private fun DurationRow(settings: AppSettings) {
                     if (i < AppSettings.LAYER_DURATIONS.lastIndex) Box(Modifier.fillMaxWidth().height(1.dp).background(ListLineColor))
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun AppearanceRow(settings: AppSettings) {
+    val options = listOf(R.string.appearance_classic, R.string.appearance_premium)
+    val chosen = if (settings.isPremiumUi) 1 else 0
+    Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+        Row(Modifier.fillMaxWidth().height(36.dp).padding(horizontal = 15.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text(stringResource(R.string.settings_appearance), color = Am.HomeInk, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+        }
+        Choices(options, chosen) { index ->
+            settings.appearanceMode = if (index == 1) "premium" else "classic"
         }
     }
 }

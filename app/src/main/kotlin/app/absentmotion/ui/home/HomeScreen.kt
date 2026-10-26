@@ -582,18 +582,27 @@ internal fun Modifier.checkerboard(cell: Dp): Modifier = drawWithCache {
 
 @Composable
 private fun EmptyState(element: Boolean, arrow: Boolean = true) {
-    Box(Modifier.fillMaxSize().enterFade()) {
-        Column(Modifier.fillMaxWidth().padding(top = 243.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(
-                stringResource(if (element) R.string.home_empty_assets else R.string.home_empty_projects),
-                color = Am.Navy, fontSize = 24.sp, lineHeight = 33.sp, fontWeight = FontWeight.Bold,
-            )
-            if (element) {
-                Spacer(Modifier.height(8.dp))
-                Text(promptText(), color = Am.Navy, fontSize = 17.sp, lineHeight = 22.sp, textAlign = TextAlign.Center)
+    if (app.absentmotion.pro.ProFeatures.isEnabled(app.absentmotion.pro.ProFeatures.premiumUi)) {
+        app.absentmotion.pro.PremiumEmptyState(
+            title = stringResource(if (element) R.string.home_empty_assets else R.string.home_empty_projects),
+            subtitle = if (element) stringResource(R.string.home_asset_prompt_first) else null,
+            icon = if (element) HomeIcons.ProjectsTab else HomeIcons.Folder,
+            arrow = arrow,
+        )
+    } else {
+        Box(Modifier.fillMaxSize().enterFade()) {
+            Column(Modifier.fillMaxWidth().padding(top = 243.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    stringResource(if (element) R.string.home_empty_assets else R.string.home_empty_projects),
+                    color = Am.Navy, fontSize = 24.sp, lineHeight = 33.sp, fontWeight = FontWeight.Bold,
+                )
+                if (element) {
+                    Spacer(Modifier.height(8.dp))
+                    Text(promptText(), color = Am.Navy, fontSize = 17.sp, lineHeight = 22.sp, textAlign = TextAlign.Center)
+                }
             }
+            if (arrow) Icon(HomeIcons.ArrowDown, null, Modifier.align(Alignment.BottomCenter).padding(bottom = 28.dp).size(56.dp), tint = Am.HomeInk)
         }
-        if (arrow) Icon(HomeIcons.ArrowDown, null, Modifier.align(Alignment.BottomCenter).padding(bottom = 28.dp).size(56.dp), tint = Am.HomeInk)
     }
 }
 

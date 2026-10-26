@@ -1176,7 +1176,7 @@ private fun DrawScope.drawRow(
 }
 
 private fun DrawScope.drawBar(outline: Path, left: Float, right: Float, top: Float, bottom: Float, stripe: Float, picture: StripPicture?, startTime: Int, pxPerMs: Float, text: Boolean = false, camera: Boolean = false) {
-    val radius = BarRadius.toPx()
+    val radius = if (app.absentmotion.pro.ProFeatures.isEnabled(app.absentmotion.pro.ProFeatures.premiumUi)) 6.dp.toPx() else BarRadius.toPx()
     val from = max(left, -2 * radius)
     val to = min(right, size.width + 2 * radius)
     if (from >= to) return
@@ -1228,7 +1228,12 @@ private fun DrawScope.drawKeyframes(frames: List<Int>, scene: Scene, selected: B
                 drawPath(outline, Color.White.copy(alpha = 0.7f))
                 continue
             }
-            if (here) drawPath(outline, Am.Accent, style = Stroke(3.55.dp.toPx()))
+            if (here) {
+                if (app.absentmotion.pro.ProFeatures.isEnabled(app.absentmotion.pro.ProFeatures.premiumUi)) {
+                    drawPath(outline, Am.AccentGlow.copy(alpha = 0.5f), style = Stroke(5.5.dp.toPx()))
+                }
+                drawPath(outline, Am.Accent, style = Stroke(3.55.dp.toPx()))
+            }
             drawPath(outline, Color.Black, style = Stroke(1.4.dp.toPx()))
             drawPath(outline, if (keyFrame == grabbed) Am.Accent else Color.White)
         }

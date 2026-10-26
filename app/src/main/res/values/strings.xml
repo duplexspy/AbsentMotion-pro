@@ -159,7 +159,11 @@
     <string name="update_turn_on">Turn it on</string>
     <string name="update_not_now">Not now</string>
     <string name="update_outdated">This may be fixed in the newer version (installed %1$s, newest %2$s).</string>
-    <string name="theme_absentmotion">Absent Motion Pro</string>
+    <string name="theme_premium">Premium Dark</string>
+    <string name="appearance_classic">Classic</string>
+    <string name="appearance_premium">Premium</string>
+    <string name="settings_appearance">Appearance</string>
+    <string name="theme_absentmotion">Absent Motion Classic</string>
     <string name="theme_daylight">Daylight</string>
     <string name="theme_custom">Custom</string>
     <string name="theme_custom_named">Custom (%1$s)</string>

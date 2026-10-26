@@ -189,6 +189,9 @@ internal fun MotionSheet(title: String, onClose: () -> Unit, content: @Composabl
         PhoneScreen {
             Box(Modifier.fillMaxSize().clickable(interactionSource = null, indication = null, onClick = onClose).systemBarsPadding(), Alignment.BottomCenter) {
                 Column(Modifier.fillMaxWidth().clip(SheetShape).background(Am.Panel).clickable(interactionSource = null, indication = null) {}.padding(horizontal = 16.dp)) {
+                    if (app.absentmotion.pro.ProFeatures.isEnabled(app.absentmotion.pro.ProFeatures.premiumUi)) {
+                        app.absentmotion.pro.BottomSheetDragHandle()
+                    }
                     Row(Modifier.fillMaxWidth().height(48.dp), verticalAlignment = Alignment.CenterVertically) {
                         Text(title, Modifier.weight(1f), color = Am.OnDark, fontSize = 17.sp, fontWeight = FontWeight.Bold)
                         BarButton(ChromeIcons.Close, stringResource(R.string.action_close), Modifier.size(40.dp), onClick = onClose)

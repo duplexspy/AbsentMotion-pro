@@ -260,7 +260,12 @@ private fun SheetBody(form: Form, onClose: () -> Unit, onCamera: () -> Unit, onC
         Modifier.fillMaxWidth().clip(RoundedCornerShape(topStart = 22.dp, topEnd = 22.dp)).background(Am.SheetBg)
             .windowInsetsPadding(WindowInsets.navigationBars.union(WindowInsets.ime)).verticalScroll(rememberScrollState()),
     ) {
-        Spacer(Modifier.height(30.dp))
+        if (app.absentmotion.pro.ProFeatures.isEnabled(app.absentmotion.pro.ProFeatures.premiumUi)) {
+            app.absentmotion.pro.BottomSheetDragHandle()
+            Spacer(Modifier.height(14.dp))
+        } else {
+            Spacer(Modifier.height(30.dp))
+        }
         TypeToggle(form)
         Spacer(Modifier.height(35.dp))
         NameField(form)

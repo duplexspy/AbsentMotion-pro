@@ -103,6 +103,9 @@ internal fun VoiceSheet(state: EditorState, onClose: () -> Unit) {
         PhoneScreen {
             Box(Modifier.fillMaxSize().clickable(interactionSource = null, indication = null) { dismiss() }.systemBarsPadding().imePadding(), Alignment.BottomCenter) {
                 Column(Modifier.fillMaxWidth().clip(SheetShape).background(Am.Panel).clickable(interactionSource = null, indication = null) {}.padding(horizontal = 16.dp)) {
+                    if (app.absentmotion.pro.ProFeatures.isEnabled(app.absentmotion.pro.ProFeatures.premiumUi)) {
+                        app.absentmotion.pro.BottomSheetDragHandle()
+                    }
                     Row(Modifier.fillMaxWidth().height(48.dp), verticalAlignment = Alignment.CenterVertically) {
                         Text(stringResource(R.string.text_to_speech), Modifier.weight(1f), color = Am.OnDark, fontSize = 17.sp, fontWeight = FontWeight.Bold)
                         BarButton(ChromeIcons.Close, stringResource(R.string.action_close), Modifier.size(40.dp), onClick = ::dismiss)

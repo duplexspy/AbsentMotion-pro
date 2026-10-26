@@ -29,7 +29,17 @@ class AppSettings(private val context: Context) {
     private var themeState by mutableStateOf(prefs.getString("theme", Themes.DEFAULT)!!)
     private var customThemeState by mutableStateOf(Themes.custom(context)?.let { it.name ?: "" })
 
-    init { Am.palette = Themes.palette(context, themeState) }
+    init {
+        val initialTheme = if (app.absentmotion.pro.ProFeatures.isEnabled(app.absentmotion.pro.ProFeatures.premiumUi) && prefs.getString("appearanceMode", "premium") == "premium" && (themeState == "AbsentMotion" || themeState == "Premium")) {
+            "Premium"
+        } else if (!app.absentmotion.pro.ProFeatures.isEnabled(app.absentmotion.pro.ProFeatures.premiumUi) && themeState == "Premium") {
+            "AbsentMotion"
+        } else {
+            themeState
+        }
+        themeState = initialTheme
+        Am.palette = Themes.palette(context, themeState)
+    }
 
     private var savedColoursState by mutableStateOf(
         prefs.getString("savedColours", null)?.split(',')?.mapNotNull { it.toIntOrNull() } ?: listOf(0x264653, 0x2A9D8F, 0xE9C46A, 0xE76F51),
@@ -162,6 +172,27 @@ class AppSettings(private val context: Context) {
             Am.palette = Themes.palette(context, value)
         }
 
+    var appearanceMode: String
+        get() = if (app.absentmotion.pro.ProFeatures.isEnabled(app.absentmotion.pro.ProFeatures.premiumUi)) prefs.getString("appearanceMode", "premium") ?: "premium" else "classic"
+        set(value) {
+            prefs.edit().putString("appearanceMode", value).apply()
+            updateThemeForAppearance()
+        }
+
+    val isPremiumUi: Boolean
+        get() = app.absentmotion.pro.ProFeatures.isEnabled(app.absentmotion.pro.ProFeatures.premiumUi) && appearanceMode == "premium"
+
+    fun updateThemeForAppearance() {
+        val target = if (isPremiumUi && (themeState == "AbsentMotion" || themeState == "Premium")) {
+            "Premium"
+        } else if (!isPremiumUi && (themeState == "Premium" || themeState == "AbsentMotion")) {
+            "AbsentMotion"
+        } else {
+            themeState
+        }
+        theme = target
+    }
+
     val themes: List<Pair<String, UiText>>
         get() = Palette.BuiltIn.map { it.first to builtInThemeName(it.first) } +
             listOfNotNull(customThemeState?.let { Themes.CUSTOM to if (it.isEmpty()) txt(R.string.theme_custom) else txt(R.string.theme_custom_named, it) })
@@ -169,6 +200,7 @@ class AppSettings(private val context: Context) {
     val themeLabel: UiText get() = themes.firstOrNull { it.first == themeState }?.second ?: builtInThemeName(Themes.DEFAULT)
 
     private fun builtInThemeName(id: String) = when (id) {
+        "Premium" -> txt(R.string.theme_premium)
         "Daylight" -> txt(R.string.theme_daylight)
         else -> txt(R.string.theme_absentmotion)
     }

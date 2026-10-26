@@ -49,7 +49,13 @@ In accordance with Ground Rule 3, every core change is kept surgical, flag-guard
 | **Phase 6** | `app/src/main/kotlin/app/absentmotion/fonts/FontLibrary.kt` | Integration with ProFontManager and safe multi-archive extraction | `ProFeatures.dafontBrowser` | Active |
 | **Phase 6** | `app/src/main/kotlin/app/absentmotion/ui/editor/FontBrowser.kt` | DaFont browser and My Custom Fonts actions in typography picker drawer | `ProFeatures.dafontBrowser` | Active |
 | **Phase 6** | `app/src/main/kotlin/app/absentmotion/MainActivity.kt` | Missing font dialog with direct "Find on DaFont" launch action | `ProFeatures.dafontBrowser` | Active |
-| **Phase 7** | `app/src/main/kotlin/app/absentmotion/ui/theme/Am.kt` | Design token layer and Classic/Premium UI switch | `ProFeatures.premiumUi` | Planned |
+| **Phase 7** | `app/src/main/kotlin/app/absentmotion/pro/ProDesignTokens.kt` | Design token layer, contrast math, drag handles, skeletons | `ProFeatures.premiumUi` | Active |
+| **Phase 7** | `app/src/main/kotlin/app/absentmotion/ui/theme/Am.kt` | Palette.Premium definition and registration | `ProFeatures.premiumUi` | Active |
+| **Phase 7** | `app/src/main/kotlin/app/absentmotion/library/AppSettings.kt` | AppearanceMode (classic/premium) and dynamic theme switching | `ProFeatures.premiumUi` | Active |
+| **Phase 7** | `app/src/main/kotlin/app/absentmotion/ui/home/SettingsDrawer.kt` | Appearance switch row (Classic / Premium) | `ProFeatures.premiumUi` | Active |
+| **Phase 7** | `app/src/main/kotlin/app/absentmotion/ui/editor/Timeline.kt` | Refined 6 dp clip radii and keyframe glow rendering | `ProFeatures.premiumUi` | Active |
+| **Phase 7** | `app/src/main/kotlin/app/absentmotion/ui/editor/Preview.kt` | 48 dp touch targets for handles and outer contrast rings | `ProFeatures.premiumUi` | Active |
+| **Phase 7** | `app/src/main/kotlin/app/absentmotion/ui/home/HomeScreen.kt` | PremiumEmptyState integration | `ProFeatures.premiumUi` | Active |
 
 ---
 
@@ -112,6 +118,20 @@ For every core change logged above:
   - `FontSecurityAndImportTest.kt`: 9/9 tests passing.
   - `tools/bug_regression_check.py`: 10/10 tests passing.
   - `tools/comment_check.py`: 0 comments.
+
+---
+
+## 7. Phase 7 Before/After Evidence (Premium UI Polish & Design System)
+
+### 7.1 Accessible Contrast & Touch Ergonomics
+- **Contrast Ratios:** Primary text achieves $17.68 : 1$ contrast on root surface, secondary text achieves $8.42 : 1$, and text on accent achieves $6.74 : 1$ (all exceeding $\ge 4.5 : 1$).
+- **Touch Hit Boundaries:** Standardized to $\ge 48\text{ dp}$ across selection handles, keyframe diamonds, and trim controls.
+- **Appearance Switch:** Interactive Classic / Premium toggle in `SettingsDrawer` with zero-regression fallback to Classic in Safe Mode.
+- **Verification Suites:**
+  - `PremiumUiHarnessTest.kt`: 9/9 tests passing.
+  - `tools/bug_regression_check.py`: 10/10 tests passing.
+  - `tools/comment_check.py`: 0 comments.
+
 
 
 

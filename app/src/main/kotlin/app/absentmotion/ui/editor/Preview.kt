@@ -167,7 +167,8 @@ fun Preview(state: EditorState, modifier: Modifier = Modifier, reserveEnd: Dp = 
                     } else if (startLayer != null && startQuad != null && state.panel == EditorPanel.ColorFill && startLayer.fillType == "gradient") {
                         gradientHandleAt(startLayer, startQuad, down.position, 24.dp.toPx())
                     } else if (startLayer != null && startQuad != null && startLayer.kind != "camera" && (state.panel == EditorPanel.Tools || (state.panel == EditorPanel.Effects && adjusting == null))) {
-                        handlesOf(startQuad).indexOfFirst { (it - down.position).getDistance() < 20.dp.toPx() }
+                        val grabThreshold = if (app.absentmotion.pro.ProFeatures.isEnabled(app.absentmotion.pro.ProFeatures.premiumUi)) 24.dp.toPx() else 20.dp.toPx()
+                        handlesOf(startQuad).indexOfFirst { (it - down.position).getDistance() < grabThreshold }
                     } else {
                         -1
                     }
@@ -297,8 +298,14 @@ fun Preview(state: EditorState, modifier: Modifier = Modifier, reserveEnd: Dp = 
             val points = List(4) { Offset(q[2 * it] * scale + dx, q[2 * it + 1] * scale + dy) }
             for (i in 0..3) drawLine(Am.Accent, points[i], points[(i + 1) % 4], 1.dp.toPx())
             val handle = if (state.selected?.textAlign == "right") (points[0] + points[3]) / 2f else (points[1] + points[2]) / 2f
-            drawCircle(Am.AccentDeep, 10.dp.toPx(), handle)
-            drawCircle(Am.Accent, 9.dp.toPx(), handle)
+            if (app.absentmotion.pro.ProFeatures.isEnabled(app.absentmotion.pro.ProFeatures.premiumUi)) {
+                drawCircle(Color.White, 11.5.dp.toPx(), handle)
+                drawCircle(Am.AccentDeep, 10.dp.toPx(), handle)
+                drawCircle(Am.Accent, 8.5.dp.toPx(), handle)
+            } else {
+                drawCircle(Am.AccentDeep, 10.dp.toPx(), handle)
+                drawCircle(Am.Accent, 9.dp.toPx(), handle)
+            }
         }
     }
 }
