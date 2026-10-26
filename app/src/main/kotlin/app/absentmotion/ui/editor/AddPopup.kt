@@ -213,13 +213,28 @@ private fun TemplateCell(template: SavedTemplate, modifier: Modifier, onClick: (
 private fun QuickBar(state: EditorState, modifier: Modifier) {
     var captions by remember { mutableStateOf(false) }
     Column(modifier) {
-        QuickItem(R.string.add_quick_freehand_brush, ChromeIcons.Freehand, height = 61.dp, iconTop = 7.dp, labelTop = 35.dp, onClick = { state.startFreehand() })
-        QuickItem(R.string.add_quick_pen_tool, ChromeIcons.VectorDrawing, height = 61.dp, iconTop = 6.5.dp, labelTop = 35.dp, onClick = { state.startVectorTool() })
-        QuickItem(R.string.add_quick_text, ChromeIcons.TextTool, height = 48.dp, iconTop = 4.dp, labelTop = 31.dp, onClick = { state.addText() })
-        QuickItem(R.string.add_quick_captions, ChromeIcons.Captions, height = 48.dp, iconTop = 4.dp, labelTop = 31.dp, onClick = { captions = true })
+        QuickItem(R.string.add_quick_freehand_brush, ChromeIcons.Freehand, height = 44.dp, iconTop = 4.dp, labelTop = 28.dp, onClick = { state.startFreehand() })
+        QuickItem("Vector Pro", ChromeIcons.VectorDrawing, height = 44.dp, iconTop = 4.dp, labelTop = 28.dp, onClick = { state.startVectorTool() })
+        QuickItem("Classic Vector", DrawingIcons.AddPoint, height = 44.dp, iconTop = 4.dp, labelTop = 28.dp, onClick = { state.startVectorDrawing() })
+        QuickItem(R.string.add_quick_text, ChromeIcons.TextTool, height = 39.dp, iconTop = 3.dp, labelTop = 25.dp, onClick = { state.addText() })
+        QuickItem(R.string.add_quick_captions, ChromeIcons.Captions, height = 39.dp, iconTop = 3.dp, labelTop = 25.dp, onClick = { captions = true })
         BarButton(ChromeIcons.CloseThick, stringResource(R.string.action_close), Modifier.fillMaxWidth().weight(1f)) { state.addOpen = false }
     }
     if (captions) CaptionsSheet(state) { captions = false }
+}
+
+@Composable
+private fun QuickItem(label: String, icon: ImageVector, height: Dp, iconTop: Dp, labelTop: Dp, onClick: () -> Unit) {
+    val press = remember { MutableInteractionSource() }
+    Column(Modifier.fillMaxWidth().height(height).pressScale(press, TilePress).clickable(press, LocalIndication.current, onClick = onClick), horizontalAlignment = Alignment.CenterHorizontally) {
+        Spacer(Modifier.height(iconTop))
+        Icon(icon, null, Modifier.size(20.dp), tint = Am.OnDark)
+        Spacer(Modifier.height(labelTop - iconTop - 20.dp))
+        Text(
+            label, Modifier.fillMaxWidth().padding(horizontal = 2.dp), color = Am.OnDark,
+            fontSize = 9.sp, lineHeight = 10.5.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center,
+        )
+    }
 }
 
 @Composable

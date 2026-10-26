@@ -13,7 +13,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.io.InputStream
 
-val EffectCategories: List<Pair<String, String>> = EffectCatalog.Categories.toList() + ("ai" to "AI") + ("custom" to "Custom Effects")
+val EffectCategories: List<Pair<String, String>> = EffectCatalog.Categories.toList() + ("ai" to "AI")
 
 data class EffectCatalog(
     val definitions: List<EffectDefinition> = emptyList(),
@@ -38,8 +38,11 @@ data class EffectCatalog(
         return byName + definitions.filter { it !in byName && matchesSearch(query, it.name, it.description) }.sortedBy { it.name.lowercase() }
     }
 
-    val categories: List<Pair<String, String>> get() =
-        ((if (definitions.any(::isNew)) listOf("new" to "New") else emptyList()) + EffectCategories).map { (k, v) -> k to (categoryNames[k] ?: v) }
+    val categories: List<Pair<String, String>> get() {
+        val base = (if (definitions.any(::isNew)) listOf("new" to "New") else emptyList()) + EffectCategories
+        val withCustom = if (definitions.any { it.category == "custom" || it.category == "packs" }) base + ("custom" to "Custom Effects") else base
+        return withCustom.map { (k, v) -> k to (categoryNames[k] ?: v) }
+    }
 
     fun drawable(path: String?): Drawable? = path?.let { p ->
         if (ProFeatures.isEnabled(ProFeatures.effectThumbnailsLq)) {

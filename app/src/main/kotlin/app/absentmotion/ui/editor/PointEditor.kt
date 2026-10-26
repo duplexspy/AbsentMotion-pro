@@ -43,6 +43,8 @@ import app.absentmotion.editor.screenMatrix
 import app.absentmotion.editor.inverseMap
 import app.absentmotion.editor.moveSelectedTo
 import app.absentmotion.editor.onionShape
+import app.absentmotion.editor.switchToProVector
+import app.absentmotion.pro.VectorToolIcons
 import app.absentmotion.editor.placePoint
 import app.absentmotion.editor.pointContours
 import app.absentmotion.editor.selectAdd
@@ -191,6 +193,7 @@ internal fun PointPanel(state: EditorState, mode: PointMode) {
             }, Alignment.Center) {
                 Icon(if (adding) DrawingIcons.AddPoint else DrawingIcons.DeletePoint, stringResource(if (adding) R.string.a11y_add_point else R.string.a11y_delete_point), Modifier.size(24.dp), tint = Am.OnDark)
             }
+            PanelButton(VectorToolIcons.NodeEdit, "Switch to Vector Pro", Modifier.weight(1f)) { state.switchToProVector() }
         }
         Box(Modifier.width(1.dp).fillMaxHeight().background(Divider))
         Trackpad(state, mode, contour, Modifier.weight(1f).fillMaxHeight())

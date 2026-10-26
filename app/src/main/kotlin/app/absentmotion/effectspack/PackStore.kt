@@ -35,22 +35,26 @@ object PackStore {
     fun packsDir(context: Context): File = File(context.filesDir, "packs").apply { mkdirs() }
 
     fun installBundledPacks(context: Context) {
-        val packs = listPacks(context)
-        if (packs.any { it.manifest.id == "gm.custom.bundle" }) return
-
+        val existingPackIds = listPacks(context).map { it.manifest.id }.toSet()
+        val bundled = listOf(
+            "goldmotion.customfx" to "goldmotion_customfx.effectspack",
+            "amp.pro.ultimate520" to "absent_motion_pro_520_ultimate.effectspack"
+        )
         var changed = false
-        val bundledNames = listOf("goldmotion_customfx.effectspack")
-        for (item in bundledNames) {
-            runCatching {
-                context.assets.open("packs/$item").use { input ->
-                    importZip(context, input)
-                    changed = true
+        for ((packId, item) in bundled) {
+            if (packId !in existingPackIds) {
+                runCatching {
+                    context.assets.open("packs/$item").use { input ->
+                        importZip(context, input)
+                        changed = true
+                    }
                 }
             }
         }
         val assetList = runCatching { context.assets.list("packs") }.getOrNull().orEmpty()
+        val bundledFiles = bundled.map { it.second }.toSet()
         for (item in assetList) {
-            if (item !in bundledNames && (item.endsWith(".effectspack") || item.endsWith(".zip"))) {
+            if (item !in bundledFiles && (item.endsWith(".effectspack") || item.endsWith(".zip"))) {
                 runCatching {
                     context.assets.open("packs/$item").use { input ->
                         importZip(context, input)
@@ -236,7 +240,7 @@ object PackStore {
     }
 
     private fun installExtractedFolder(context: Context, folder: File): ImportResult {
-        val manifestFile = File(folder, "manifest.json")
+        val manifestFile = folder.walkTopDown().firstOrNull { it.isFile && it.name == "manifest.json" } ?: File(folder, "manifest.json")
         val manifest = if (manifestFile.isFile) {
             runCatching { PackManifest.parse(manifestFile.readText()) }.getOrNull()
         } else null

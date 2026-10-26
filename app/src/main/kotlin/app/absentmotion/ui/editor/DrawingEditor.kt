@@ -40,8 +40,12 @@ import app.absentmotion.editor.TrackMode
 import app.absentmotion.editor.VectorToolMode
 import app.absentmotion.editor.leaveDrawing
 import app.absentmotion.editor.shapeKeyFrames
+import app.absentmotion.editor.switchToClassicVector
+import app.absentmotion.editor.switchToProVector
 import app.absentmotion.editor.toggleShapeKey
 import app.absentmotion.editor.screenMatrix
+import app.absentmotion.pro.VectorToolIcons
+import app.absentmotion.pro.deleteSelectedKnot
 import app.absentmotion.model.DrawTool
 import app.absentmotion.model.Stroke
 import app.absentmotion.model.StrokePoint
@@ -102,7 +106,7 @@ private fun DrawingBar(state: EditorState, mode: DrawingMode, modifier: Modifier
     Row(modifier.background(Bar), verticalAlignment = Alignment.CenterVertically) {
         BarButton(ChromeIcons.Back, stringResource(R.string.draw_back), cell) { state.leaveDrawing() }
         Text(
-            if (mode is VectorToolMode) "Vector Tool" else stringResource(
+            if (mode is VectorToolMode) "Vector Tool (Pro)" else stringResource(
                 when { mode is TrackMode -> R.string.draw_title_track_motion; mode is PointMode && mode.vector -> R.string.add_quick_pen_tool; mode is PointMode -> R.string.draw_title_edit_points; else -> R.string.add_quick_freehand_brush },
             ),
             Modifier.weight(1f), color = Am.OnDark, fontSize = 15.sp, maxLines = 1,
@@ -111,6 +115,12 @@ private fun DrawingBar(state: EditorState, mode: DrawingMode, modifier: Modifier
         BarButton(ChromeIcons.Undo, stringResource(R.string.draw_undo), cell, enabled = state.canUndo && !busy) { state.undo() }
         BarButton(ChromeIcons.Redo, stringResource(R.string.draw_redo), cell, enabled = state.canRedo && !busy) { state.redo() }
         if (mode is VectorToolMode) {
+            val hasPoint = mode.selectedKnot >= 0
+            BarButton(DrawingIcons.DeletePoint, "Delete Point", cell, enabled = hasPoint) { state.deleteSelectedKnot(mode) }
+            BarButton(DrawingIcons.AddPoint, "Classic Points", cell) { state.switchToClassicVector() }
+            BarButton(PanelIcons.Check, "Done", cell) { state.leaveDrawing() }
+        } else if (mode is PointMode) {
+            BarButton(VectorToolIcons.NodeEdit, "Vector Pro", cell) { state.switchToProVector() }
             BarButton(PanelIcons.Check, "Done", cell) { state.leaveDrawing() }
         }
     }

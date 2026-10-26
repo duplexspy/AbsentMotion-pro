@@ -53,5 +53,6 @@ Thumbs.db
 /goldmotion/
 *.zip
 *.effectspack
+!app/src/main/assets/packs/*.effectspack
 /docs/THEMES.md
 /third_party/gn-src/

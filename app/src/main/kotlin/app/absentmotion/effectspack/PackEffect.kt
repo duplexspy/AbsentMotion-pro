@@ -56,7 +56,7 @@ data class PackEffect(
     val available: Boolean get() = status == "ok" && error == null
     val key: String get() = id.removePrefix("gm.custom.")
 
-    fun toEffectDefinition(thumbPath: String? = null, packName: String? = null): EffectDefinition = EffectDefinition(
+    fun toEffectDefinition(thumbPath: String? = null, packName: String? = null, author: String? = null): EffectDefinition = EffectDefinition(
         id = id,
         key = key,
         name = name,
@@ -70,6 +70,8 @@ data class PackEffect(
         customThumb = thumbPath ?: thumbRef,
         group = group,
         packName = packName,
+        author = author,
+        tags = tags,
     )
 
     fun instance(): XmlNode = XmlNode(

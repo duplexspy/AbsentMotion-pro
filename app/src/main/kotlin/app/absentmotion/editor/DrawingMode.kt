@@ -143,6 +143,29 @@ fun EditorState.editVectorTool() {
     enter(layer, VectorToolMode(layer.id, created = false), created = false)
 }
 
+fun EditorState.switchToClassicVector() {
+    val cur = drawing as? VectorToolMode ?: return
+    val layer = scene.layer(cur.layerId) ?: return
+    val contours = layer.contours.orEmpty()
+    val selContour = cur.selectedContour.coerceIn(0, (contours.size - 1).coerceAtLeast(0))
+    val selKnot = cur.selectedKnot.takeIf { it >= 0 } ?: if (contours.getOrNull(selContour)?.knots?.isNotEmpty() == true) 0 else -1
+    val h = if (selKnot >= 0) Handle.Main else Handle.Add
+    drawing = PointMode(cur.layerId, created = cur.created, vector = true).apply {
+        contour = selContour
+        point = selKnot
+        handle = h
+    }
+}
+
+fun EditorState.switchToProVector() {
+    val cur = drawing as? PointMode ?: return
+    drawing = VectorToolMode(cur.layerId, created = cur.created).apply {
+        selectedContour = cur.contour
+        selectedKnot = cur.point.takeIf { it >= 0 } ?: -1
+        selectedHandle = cur.handle
+    }
+}
+
 fun EditorState.leaveDrawing() {
     val mode = drawing ?: return
     drawing = null

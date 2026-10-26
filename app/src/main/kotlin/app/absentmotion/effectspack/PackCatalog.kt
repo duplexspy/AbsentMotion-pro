@@ -54,7 +54,7 @@ object PackCatalog {
         if (effects.isEmpty()) return base
 
         val adaptedDefs = effects.map { (pack, eff) ->
-            eff.toEffectDefinition(eff.thumbRef, pack.manifest.name.ifBlank { "Custom Effects" })
+            eff.toEffectDefinition(eff.thumbRef, pack.manifest.name.ifBlank { "Custom Effects" }, pack.manifest.author.ifBlank { null })
         }
         val allDefs = base.definitions + adaptedDefs
 

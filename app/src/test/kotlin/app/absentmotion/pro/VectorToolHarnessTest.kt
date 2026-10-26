@@ -4,6 +4,7 @@ import app.absentmotion.model.Contour
 import app.absentmotion.model.Handle
 import app.absentmotion.model.Knot
 import app.absentmotion.model.Pt
+import app.absentmotion.model.withPointRemoved
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
@@ -208,5 +209,16 @@ class VectorToolHarnessTest {
 
         ProFeatures.setSafeMode(context = null, enabled = false)
         assertTrue(ProFeatures.isEnabled(ProFeatures.newVectorTool))
+    }
+
+    @Test
+    fun testContourPointRemoval() {
+        val rect = makeRect(100f, 60f, 0f)
+        assertEquals(4, rect.knots.size)
+        val afterDelete = rect.withPointRemoved(1)
+        assertEquals(3, afterDelete.knots.size)
+        assertEquals(rect.knots[0].p, afterDelete.knots[0].p)
+        assertEquals(rect.knots[2].p, afterDelete.knots[1].p)
+        assertEquals(rect.knots[3].p, afterDelete.knots[2].p)
     }
 }

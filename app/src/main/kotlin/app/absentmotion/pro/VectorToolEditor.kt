@@ -42,6 +42,7 @@ import app.absentmotion.editor.inverseMap
 import app.absentmotion.editor.leaveDrawing
 import app.absentmotion.editor.map
 import app.absentmotion.editor.screenMatrix
+import app.absentmotion.editor.switchToClassicVector
 import app.absentmotion.model.Contour
 import app.absentmotion.model.Handle
 import app.absentmotion.model.Knot
@@ -346,6 +347,9 @@ internal fun VectorToolPanel(state: EditorState, mode: VectorToolMode) {
                 SubtoolButton(VectorToolIcons.Join, "Join", mode.subtool == VectorSubtool.Join) { mode.subtool = VectorSubtool.Join }
             }
             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                val hasPoint = mode.selectedKnot >= 0
+                SubtoolButton(DrawingIcons.DeletePoint, "Delete Point", false, enabled = hasPoint) { state.deleteSelectedKnot(mode) }
+                SubtoolButton(DrawingIcons.AddPoint, "Classic Points", false) { state.switchToClassicVector() }
                 SubtoolButton(VectorToolIcons.Magnet, "Snap", mode.snappingEnabled) { mode.snappingEnabled = !mode.snappingEnabled }
                 SubtoolButton(VectorToolIcons.DashedLine, "Dash", activeTab == "dash") {
                     activeTab = if (activeTab == "dash") "tools" else "dash"
@@ -371,13 +375,20 @@ internal fun VectorToolPanel(state: EditorState, mode: VectorToolMode) {
 }
 
 @Composable
-private fun SubtoolButton(icon: androidx.compose.ui.graphics.vector.ImageVector, label: String, active: Boolean, onClick: () -> Unit) {
+private fun SubtoolButton(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    active: Boolean,
+    enabled: Boolean = true,
+    onClick: () -> Unit,
+) {
     Box(
         Modifier
             .size(36.dp)
             .clip(RoundedCornerShape(6.dp))
             .background(if (active) Am.Accent.copy(alpha = 0.25f) else Color.Transparent)
-            .clickable(onClick = onClick),
+            .alpha(if (enabled) 1f else 0.35f)
+            .clickable(enabled = enabled, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
         Icon(icon, label, Modifier.size(20.dp), tint = if (active) Am.Accent else Am.OnDark)
@@ -398,7 +409,7 @@ private fun NodeConfigPanel(state: EditorState, mode: VectorToolMode) {
             Spacer(Modifier.height(4.dp))
             Text("Actions", color = Am.Caption, fontSize = 11.sp, fontWeight = FontWeight.Bold)
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                ActionChip("Delete") { state.deleteSelectedKnot(mode) }
+                ActionChip("Delete Point") { state.deleteSelectedKnot(mode) }
                 ActionChip("Break") { state.breakContourAtSelected(mode) }
                 ActionChip("Join") { state.joinOpenContours(mode) }
             }
@@ -420,6 +431,9 @@ private fun PenConfigPanel(state: EditorState, mode: VectorToolMode) {
             Text("Pen Tool", color = Am.OnDark, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
             Text("Tap to place a point. Drag to pull smooth curve handles.", color = Am.Caption, fontSize = 11.sp)
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                if (mode.selectedKnot >= 0) {
+                    ActionChip("Delete Point") { state.deleteSelectedKnot(mode) }
+                }
                 ActionChip("Close Path") { state.joinOpenContours(mode) }
                 ActionChip("Copy SVG") { state.copySvg(mode, context) }
                 ActionChip("Paste SVG") { state.pasteSvg(mode, context) }

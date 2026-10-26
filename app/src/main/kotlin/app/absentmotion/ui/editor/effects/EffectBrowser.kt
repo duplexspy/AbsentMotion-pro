@@ -112,6 +112,7 @@ fun EffectBrowser(state: EditorState) {
     var detail by remember { mutableStateOf(state.effectDetail?.let(catalog::find)) }
     var studioOpen by remember { mutableStateOf(false) }
     var addMenuOpen by remember { mutableStateOf(false) }
+    var selectedGroupFilter by remember { mutableStateOf<String?>(null) }
 
     val packPicker = rememberDocumentPicker { uri ->
         if (uri != null) {
@@ -156,6 +157,7 @@ fun EffectBrowser(state: EditorState) {
         when {
             detail != null -> if (state.effectDetail != null) close() else detail = null
             searching -> { searching = false; query = "" }
+            selectedGroupFilter != null -> selectedGroupFilter = null
             fromAudio -> { fromAudio = false; category = "audio" }
             category != null && !audio -> category = null
             else -> close()
@@ -225,7 +227,21 @@ fun EffectBrowser(state: EditorState) {
             val effect = detail!!
             Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) {
                 Thumbnail(catalog, effect.thumbnail, Modifier.align(Alignment.CenterHorizontally).size(160.dp), category = effect.category, name = effect.name)
-                Text(effect.description, Modifier.padding(top = 16.dp, bottom = 4.dp), color = Am.OnDark, fontSize = 14.sp)
+                if (effect.packName != null || effect.group != null || effect.author != null) {
+                    val packAuthor = effect.author?.let { "by $it" } ?: "by Gold Motion"
+                    val catInfo = listOfNotNull(effect.packName, effect.group, packAuthor).joinToString(" • ")
+                    Text(catInfo, Modifier.padding(top = 8.dp), color = Am.Accent, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                }
+                if (effect.tags.isNotEmpty()) {
+                    Row(Modifier.fillMaxWidth().padding(top = 4.dp).horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        effect.tags.forEach { tag ->
+                            Box(Modifier.clip(RoundedCornerShape(4.dp)).background(Am.PanelInset).padding(horizontal = 6.dp, vertical = 2.dp)) {
+                                Text("#$tag", color = Am.OnDarkDim, fontSize = 10.sp, fontWeight = FontWeight.Medium)
+                            }
+                        }
+                    }
+                }
+                Text(effect.description, Modifier.padding(top = 8.dp, bottom = 4.dp), color = Am.OnDark, fontSize = 14.sp)
                 Row(Modifier.fillMaxWidth().height(48.dp).clickable { helpPage = "effects/${effect.key}.html" }.padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically) {
                     Icon(ExportIcons.Help, null, Modifier.size(22.dp), tint = Am.OnDark)
                     Text(stringResource(R.string.effect_help), Modifier.padding(start = 12.dp), color = Am.OnDark, fontSize = 15.sp)
@@ -255,7 +271,9 @@ fun EffectBrowser(state: EditorState) {
             }
         } else if (searching || category != null) {
             val isCustomCategory = (category == "custom" || category == "packs") && !searching
-            val results = if (audio) emptyList() else if (searching) catalog.search(query) else catalog.listed(category).let { list -> if (isCustomCategory) list else list.sortedBy { it.name.lowercase() } }
+            val rawResults = if (audio) emptyList() else if (searching) catalog.search(query) else catalog.listed(category).let { list -> if (isCustomCategory) list else list.sortedBy { it.name.lowercase() } }
+            val allGroups = remember(rawResults) { rawResults.mapNotNull { it.group }.distinct().sorted() }
+            val results = if (isCustomCategory && selectedGroupFilter != null) rawResults.filter { it.group == selectedGroupFilter } else rawResults
             val actions = if (searching || category == "ai") AiAction.entries.filter { it.offered && matchesSearch(query, stringResource(it.title)) } else emptyList()
             val presets = if (audio) emptyList() else catalog.definitions.flatMap { d -> d.presets.map { d to it } }
                 .filter { (d, p) -> if (searching) query.isNotBlank() && matchesSearch(query, p.name) else d.category == category }
@@ -266,7 +284,39 @@ fun EffectBrowser(state: EditorState) {
                     items(actions, key = { "ai-${it.name}" }) { action -> AiTile(action, state.selected, ai) }
                     items(presets, key = { (d, p) -> "preset-${d.id}-${p.slug}" }) { (d, p) -> PresetTile(catalog, d, p) { add(d, p) } }
                     if (isCustomCategory) {
-                        val grouped = results.groupBy { it.packName ?: it.group ?: "Custom Effects" }
+                        if (allGroups.isNotEmpty()) {
+                            item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(3) }, key = "custom-category-chips") {
+                                Row(
+                                    Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 6.dp).horizontalScroll(rememberScrollState()),
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    val allActive = selectedGroupFilter == null
+                                    Box(
+                                        Modifier
+                                            .clip(RoundedCornerShape(12.dp))
+                                            .background(if (allActive) Am.Accent else Am.Card)
+                                            .clickable { selectedGroupFilter = null }
+                                            .padding(horizontal = 10.dp, vertical = 5.dp)
+                                    ) {
+                                        Text("All (${rawResults.size})", color = if (allActive) Color.White else Am.OnDark, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                    }
+                                    allGroups.forEach { grp ->
+                                        val active = selectedGroupFilter == grp
+                                        val count = rawResults.count { it.group == grp }
+                                        Box(
+                                            Modifier
+                                                .clip(RoundedCornerShape(12.dp))
+                                                .background(if (active) Am.Accent else Am.Card)
+                                                .clickable { selectedGroupFilter = if (active) null else grp }
+                                                .padding(horizontal = 10.dp, vertical = 5.dp)
+                                        ) {
+                                            Text("$grp ($count)", color = if (active) Color.White else Am.OnDark, fontSize = 11.sp, fontWeight = FontWeight.Medium)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        val grouped = results.groupBy { it.group ?: it.packName ?: "Custom Effects" }
                         if (results.isEmpty()) {
                             item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(3) }, key = "empty-custom") {
                                 Column(
@@ -303,8 +353,8 @@ fun EffectBrowser(state: EditorState) {
                                 }
                             }
                         } else {
-                            grouped.forEach { (packName, effs) ->
-                                item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(3) }, key = "hdr-$packName") {
+                            grouped.forEach { (groupName, effs) ->
+                                item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(3) }, key = "hdr-$groupName") {
                                     Row(
                                         Modifier.fillMaxWidth().padding(start = 6.dp, top = 14.dp, bottom = 6.dp),
                                         verticalAlignment = Alignment.CenterVertically
@@ -312,16 +362,16 @@ fun EffectBrowser(state: EditorState) {
                                         Box(Modifier.size(4.dp, 16.dp).background(Am.Accent, RoundedCornerShape(2.dp)))
                                         Spacer(Modifier.width(8.dp))
                                         Text(
-                                            packName,
+                                            groupName,
                                             Modifier.weight(1f),
                                             color = Am.Accent,
                                             fontSize = 14.sp,
                                             fontWeight = FontWeight.Bold
                                         )
                                         Text(
-                                            "${effs.size}",
+                                            "${effs.size} • Gold Motion",
                                             color = Am.OnDarkDim,
-                                            fontSize = 12.sp,
+                                            fontSize = 11.sp,
                                             fontWeight = FontWeight.Medium
                                         )
                                         Spacer(Modifier.width(6.dp))
@@ -482,6 +532,9 @@ private fun EffectTile(catalog: EffectCatalog, effect: EffectDefinition, width: 
         }
         Text(effect.name, Modifier.fillMaxWidth().padding(top = 4.dp), color = Am.OnDark, fontSize = if (width > 100) 10.sp else 8.sp,
             lineHeight = 9.sp, textAlign = TextAlign.Center, maxLines = 2, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+        if (effect.group != null && width > 90) {
+            Text(effect.group, color = Am.Accent.copy(alpha = 0.75f), fontSize = 7.5.sp, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+        }
     }
 }
 

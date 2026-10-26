@@ -82,6 +82,8 @@ data class EffectDefinition(
     val customThumb: String? = null,
     val group: String? = null,
     val packName: String? = null,
+    val author: String? = null,
+    val tags: List<String> = emptyList(),
 ) {
     val available: Boolean get() = status == "ok"
     val thumbnail: String get() = customThumb ?: "thumb/$key.webp"
