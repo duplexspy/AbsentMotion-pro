@@ -194,7 +194,7 @@ class AppSettings(private val context: Context) {
     }
 
     val themes: List<Pair<String, UiText>>
-        get() = Palette.BuiltIn.map { it.first to builtInThemeName(it.first) } +
+        get() = Palette.Themes.map { it.first to builtInThemeName(it.first) } +
             listOfNotNull(customThemeState?.let { Themes.CUSTOM to if (it.isEmpty()) txt(R.string.theme_custom) else txt(R.string.theme_custom_named, it) })
 
     val themeLabel: UiText get() = themes.firstOrNull { it.first == themeState }?.second ?: builtInThemeName(Themes.DEFAULT)
@@ -202,6 +202,13 @@ class AppSettings(private val context: Context) {
     private fun builtInThemeName(id: String) = when (id) {
         "Premium" -> txt(R.string.theme_premium)
         "Daylight" -> txt(R.string.theme_daylight)
+        "Cyberpunk" -> txt(R.string.theme_cyberpunk)
+        "MidnightBlue" -> txt(R.string.theme_midnight_blue)
+        "EmeraldForest" -> txt(R.string.theme_emerald_forest)
+        "Amoled" -> txt(R.string.theme_amoled)
+        "Sunset" -> txt(R.string.theme_sunset)
+        "Dracula" -> txt(R.string.theme_dracula)
+        "Monokai" -> txt(R.string.theme_monokai)
         else -> txt(R.string.theme_absentmotion)
     }
 

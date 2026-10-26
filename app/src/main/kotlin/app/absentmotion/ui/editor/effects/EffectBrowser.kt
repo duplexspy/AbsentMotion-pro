@@ -170,6 +170,7 @@ fun EffectBrowser(state: EditorState) {
     }
     fun add(effect: EffectDefinition, preset: EffectPreset? = null) {
         if (!effect.available) return
+        state.engine.ensureEffectLoaded(effect)
         state.editSelected { layer -> layer.addEffect(effect.instance(preset, layer.endTime - layer.startTime)) }
         recent = (listOf(effect.id) + recent.filterNot { it == effect.id }).take(40)
         history.edit().putString("recent", recent.joinToString("|")).apply()
@@ -207,10 +208,10 @@ fun EffectBrowser(state: EditorState) {
                 BasicTextField(query, { query = it }, Modifier.weight(1f).padding(8.dp).focusRequester(focus), singleLine = true,
                     textStyle = TextStyle(color = Am.OnDark, fontSize = 17.sp), cursorBrush = SolidColor(Am.Accent))
             }
-            else Text(detail?.name ?: category?.let { key -> when (key) { "audio" -> audioName; "voice" -> voiceName; "custom", "packs" -> customName; else -> catalog.categories.firstOrNull { it.first == key }?.second } } ?: stringResource(R.string.effectbrowser_title),
+            else Text(detail?.name ?: category?.let { key -> when (key) { "audio" -> audioName; "voice" -> voiceName; "duplex" -> "Effects by Duplex"; "custom", "packs" -> customName; else -> catalog.categories.firstOrNull { it.first == key }?.second } } ?: stringResource(R.string.effectbrowser_title),
                 Modifier.weight(1f), color = Am.OnDark, fontSize = 17.sp, textAlign = TextAlign.Center, maxLines = 1)
             if (audio) Spacer(Modifier.size(44.dp))
-            else if ((category == "custom" || category == "packs") && !searching && detail == null) {
+            else if ((category == "custom" || category == "packs" || category == "duplex") && !searching && detail == null) {
                 Row {
                     BrowserButton(EffectIcons.Add, stringResource(R.string.effects_pack_import), { addMenuOpen = true })
                     BrowserButton(EffectIcons.Search, stringResource(R.string.home_search), { state.effectDetail = null; detail = null; searching = true })
@@ -270,7 +271,7 @@ fun EffectBrowser(state: EditorState) {
                 else itemsIndexed(VoicePresets) { i, preset -> AudioTile(stringResource(preset.name), i, effects.any { it.kind == FxKind.Voice } || effects.fits(FxKind.Voice)) { applyVoice(preset) } }
             }
         } else if (searching || category != null) {
-            val isCustomCategory = (category == "custom" || category == "packs") && !searching
+            val isCustomCategory = (category == "custom" || category == "packs" || category == "duplex") && !searching
             val rawResults = if (audio) emptyList() else if (searching) catalog.search(query) else catalog.listed(category).let { list -> if (isCustomCategory) list else list.sortedBy { it.name.lowercase() } }
             val allGroups = remember(rawResults) { rawResults.mapNotNull { it.group }.distinct().sorted() }
             val results = if (isCustomCategory && selectedGroupFilter != null) rawResults.filter { it.group == selectedGroupFilter } else rawResults

@@ -165,6 +165,13 @@
     <string name="settings_appearance">Appearance</string>
     <string name="theme_absentmotion">Absent Motion Classic</string>
     <string name="theme_daylight">Daylight</string>
+    <string name="theme_cyberpunk">Cyberpunk Neon</string>
+    <string name="theme_midnight_blue">Midnight Blue</string>
+    <string name="theme_emerald_forest">Emerald Forest</string>
+    <string name="theme_amoled">AMOLED Pitch Black</string>
+    <string name="theme_sunset">Sunset Glow</string>
+    <string name="theme_dracula">Dracula</string>
+    <string name="theme_monokai">Monokai</string>
     <string name="theme_custom">Custom</string>
     <string name="theme_custom_named">Custom (%1$s)</string>
     <string name="theme_error_bad_colour">Bad color for %1$s</string>

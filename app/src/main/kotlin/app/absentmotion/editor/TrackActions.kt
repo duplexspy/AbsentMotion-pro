@@ -40,6 +40,50 @@ fun EditorState.setTrackPointCount(mode: TrackMode, count: Int) {
     mode.lostFrame = null
 }
 
+fun EditorState.setTrackType(mode: TrackMode, type: TrackType) {
+    if (mode.running || mode.trackType == type) return
+    val media = scene.layer(mode.layerId)?.mediaFill?.uri?.let(scene::media) ?: return
+    mode.trackType = type
+    mode.points.clear()
+    val w = media.width.toFloat()
+    val h = media.height.toFloat()
+    when (type) {
+        TrackType.Point -> {
+            mode.points += trackStartPoints(media.width, media.height, 1)
+        }
+        TrackType.Object -> {
+            val cx = w / 2f
+            val cy = h / 2f
+            val bw = (w * 0.35f).coerceAtLeast(60f)
+            val bh = (h * 0.35f).coerceAtLeast(60f)
+            mode.boxWidth = bw
+            mode.boxHeight = bh
+            mode.boxLeft = cx - bw / 2f
+            mode.boxTop = cy - bh / 2f
+            mode.points += listOf(
+                Pt(cx - bw / 2f, cy - bh / 2f),
+                Pt(cx + bw / 2f, cy - bh / 2f),
+                Pt(cx + bw / 2f, cy + bh / 2f),
+                Pt(cx - bw / 2f, cy + bh / 2f),
+            )
+        }
+        TrackType.Scene3D -> {
+            val cx = w / 2f
+            val cy = h / 2f
+            val qw = w * 0.35f
+            val qh = h * 0.22f
+            mode.points += listOf(
+                Pt(cx - qw * 0.7f, cy - qh),
+                Pt(cx + qw * 0.7f, cy - qh),
+                Pt(cx + qw, cy + qh),
+                Pt(cx - qw, cy + qh),
+            )
+        }
+    }
+    mode.pending = emptyList()
+    mode.lostFrame = null
+}
+
 fun EditorState.runTracking(context: Context, mode: TrackMode, scope: CoroutineScope, resume: Boolean) {
     if (mode.running) return
     val document = scene
@@ -60,7 +104,12 @@ fun EditorState.runTracking(context: Context, mode: TrackMode, scope: CoroutineS
     }
     if (!continuing) {
         val f0 = runs.first().frames.first()
-        val anchor = document.videoToScene(video, f0, width, height)?.map(mode.points.first())
+        val centerPt = if (mode.points.size > 2) {
+            Pt(mode.points.map { it.x }.average().toFloat(), mode.points.map { it.y }.average().toFloat())
+        } else {
+            mode.points.first()
+        }
+        val anchor = document.videoToScene(video, f0, width, height)?.map(centerPt)
         if (anchor == null) {
             mode.message = AppText.get(R.string.track_motion_no_area)
             return

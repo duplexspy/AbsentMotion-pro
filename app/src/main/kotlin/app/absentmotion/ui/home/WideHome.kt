@@ -2,6 +2,7 @@ package app.absentmotion.ui.home
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -41,7 +42,10 @@ internal val WideCard = Modifier.widthIn(max = 420.dp)
 @Composable
 internal fun WideHeader(page: Int, tab: Int, onTab: (page: Int, tab: Int) -> Unit, onSettings: () -> Unit, onNew: () -> Unit, search: String?, onSearch: (String?) -> Unit) {
     Row(Modifier.fillMaxWidth().height(72.dp).padding(horizontal = 20.dp), Arrangement.spacedBy(12.dp), Alignment.CenterVertically) {
-        Text("AbsentMotion", color = Am.Navy, fontSize = 22.sp, fontWeight = FontWeight.Medium, maxLines = 1)
+        Column {
+            Text("Absent Motion Pro", color = Am.Navy, fontSize = 18.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+            Text("Modded by Antigravity", color = Am.Accent, fontSize = 9.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
+        }
         Spacer(Modifier.width(16.dp))
         Chip(stringResource(R.string.home_tab_projects), page == 0 && tab == 0) { onTab(0, 0) }
         Chip(stringResource(R.string.home_tab_assets), page == 0 && tab == 1) { onTab(0, 1) }

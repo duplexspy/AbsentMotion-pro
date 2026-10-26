@@ -110,10 +110,19 @@ fun SettingsDrawer(settings: AppSettings, drawer: androidx.compose.material3.Dra
         windowInsets = WindowInsets(0),
     ) {
         Column(Modifier.fillMaxSize().background(Am.Card).statusBarsPadding().verticalScroll(rememberScrollState()).navigationBarsPadding().padding(bottom = 8.dp)) {
-            Text(
-                stringResource(R.string.settings), Modifier.fillMaxWidth().height(50.dp).wrapContentHeight(Alignment.CenterVertically).padding(start = 11.dp),
-                color = Am.HomeInk, fontSize = 18.sp, fontWeight = FontWeight.Bold,
-            )
+            Row(
+                Modifier.fillMaxWidth().height(50.dp).padding(horizontal = 11.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    stringResource(R.string.settings),
+                    color = Am.HomeInk, fontSize = 18.sp, fontWeight = FontWeight.Bold,
+                )
+                Spacer(Modifier.width(8.dp))
+                Box(Modifier.clip(RoundedCornerShape(4.dp)).background(Am.Accent).padding(horizontal = 6.dp, vertical = 2.dp)) {
+                    Text("Modded by Antigravity", color = Color.White, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                }
+            }
             if (app.absentmotion.pro.ProFeatures.isSafeMode) {
                 val context = LocalContext.current
                 Column(

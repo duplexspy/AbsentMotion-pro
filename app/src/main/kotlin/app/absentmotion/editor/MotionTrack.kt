@@ -37,14 +37,38 @@ internal data class Sim(val a: Double = 1.0, val b: Double = 0.0, val tx: Double
 
     companion object {
         fun between(from: List<Pt>, to: List<Pt>): Sim {
-            if (from.size < 2) return Sim(tx = (to[0].x - from[0].x).toDouble(), ty = (to[0].y - from[0].y).toDouble())
-            val px = (from[1].x - from[0].x).toDouble(); val py = (from[1].y - from[0].y).toDouble()
-            val qx = (to[1].x - to[0].x).toDouble(); val qy = (to[1].y - to[0].y).toDouble()
-            val d = px * px + py * py
-            if (d < 1e-9) return Sim(tx = (to[0].x - from[0].x).toDouble(), ty = (to[0].y - from[0].y).toDouble())
-            val a = (qx * px + qy * py) / d
-            val b = (qy * px - qx * py) / d
-            return Sim(a, b, to[0].x - (a * from[0].x - b * from[0].y), to[0].y - (b * from[0].x + a * from[0].y))
+            val n = min(from.size, to.size)
+            if (n < 2) return Sim(tx = (to[0].x - from[0].x).toDouble(), ty = (to[0].y - from[0].y).toDouble())
+            if (n == 2) {
+                val px = (from[1].x - from[0].x).toDouble(); val py = (from[1].y - from[0].y).toDouble()
+                val qx = (to[1].x - to[0].x).toDouble(); val qy = (to[1].y - to[0].y).toDouble()
+                val d = px * px + py * py
+                if (d < 1e-9) return Sim(tx = (to[0].x - from[0].x).toDouble(), ty = (to[0].y - from[0].y).toDouble())
+                val a = (qx * px + qy * py) / d
+                val b = (qy * px - qx * py) / d
+                return Sim(a, b, to[0].x - (a * from[0].x - b * from[0].y), to[0].y - (b * from[0].x + a * from[0].y))
+            }
+            var sumPx = 0.0; var sumPy = 0.0; var sumQx = 0.0; var sumQy = 0.0
+            for (i in 0 until n) {
+                sumPx += from[i].x; sumPy += from[i].y
+                sumQx += to[i].x; sumQy += to[i].y
+            }
+            val meanPx = sumPx / n; val meanPy = sumPy / n
+            val meanQx = sumQx / n; val meanQy = sumQy / n
+            var numA = 0.0; var numB = 0.0; var den = 0.0
+            for (i in 0 until n) {
+                val ux = from[i].x - meanPx; val uy = from[i].y - meanPy
+                val vx = to[i].x - meanQx; val vy = to[i].y - meanQy
+                numA += ux * vx + uy * vy
+                numB += ux * vy - uy * vx
+                den += ux * ux + uy * uy
+            }
+            if (den < 1e-9) return Sim(tx = meanQx - meanPx, ty = meanQy - meanPy)
+            val a = numA / den
+            val b = numB / den
+            val tx = meanQx - (a * meanPx - b * meanPy)
+            val ty = meanQy - (b * meanPx + a * meanPy)
+            return Sim(a, b, tx, ty)
         }
     }
 }
@@ -308,7 +332,14 @@ internal fun Scene.trackTargets(video: Layer): List<Layer> {
 
 internal class TrackRun(val frames: List<Int>, val points: List<Pt>, val base: Sim)
 
+enum class TrackType { Point, Object, Scene3D }
+
 class TrackMode(layerId: Long) : DrawingMode(layerId, created = false) {
+    var trackType by mutableStateOf(TrackType.Point)
+    var boxLeft by mutableFloatStateOf(0f)
+    var boxTop by mutableFloatStateOf(0f)
+    var boxWidth by mutableFloatStateOf(100f)
+    var boxHeight by mutableFloatStateOf(100f)
     val points = mutableStateListOf<Pt>()
     var range by mutableStateOf(TrackRange.Forward)
     var target by mutableStateOf<Long?>(null)

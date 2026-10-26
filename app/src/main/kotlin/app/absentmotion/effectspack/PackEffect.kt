@@ -20,7 +20,7 @@ data class PackEffectParam(
     val type: String get() = when (kind) {
         "color" -> "color"
         "switch" -> "bool"
-        "choice" -> "float"
+        "choice" -> "int"
         else -> "float"
     }
 

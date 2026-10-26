@@ -89,6 +89,8 @@ import app.absentmotion.media.MODEL_TRIANGLE_BUDGET
 import app.absentmotion.media.modelFiles
 import app.absentmotion.media.parseModel
 import app.absentmotion.model.importSvg
+import app.absentmotion.pro.Shape3dLibraryDialog
+import app.absentmotion.pro.insertProcedural3dShape
 import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ensureActive
@@ -114,6 +116,7 @@ private fun ObjectTile(label: String, icon: ImageVector, modifier: Modifier, ena
 internal fun ObjectPage(state: EditorState, modifier: Modifier) {
     var picking by remember { mutableStateOf(false) }
     var reading by remember { mutableStateOf(false) }
+    var library3dOpen by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val models = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
@@ -124,11 +127,31 @@ internal fun ObjectPage(state: EditorState, modifier: Modifier) {
         }
     }
     val svg = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri -> if (uri != null) scope.launch { state.importSvgFile(context, uri) } }
-    Swap(picking, modifier, rise = 0.dp) { if (picking) ElementPicker(state, Modifier.fillMaxSize()) else ObjectTiles(state, reading, { picking = true }, { svg.launch(arrayOf("image/svg+xml")) }) { models.launch(arrayOf("*/*")) } }
+    Swap(picking, modifier, rise = 0.dp) {
+        if (picking) ElementPicker(state, Modifier.fillMaxSize())
+        else ObjectTiles(
+            state,
+            reading,
+            { picking = true },
+            { svg.launch(arrayOf("image/svg+xml")) },
+            { models.launch(arrayOf("*/*")) },
+            { library3dOpen = true }
+        )
+    }
+    if (library3dOpen) {
+        Shape3dLibraryDialog(
+            onDismiss = { library3dOpen = false },
+            onSelectShape = { shape ->
+                scope.launch {
+                    state.insertProcedural3dShape(context, shape)
+                }
+            }
+        )
+    }
 }
 
 @Composable
-private fun ObjectTiles(state: EditorState, reading: Boolean, pick: () -> Unit, importSvg: () -> Unit, importModel: () -> Unit) {
+private fun ObjectTiles(state: EditorState, reading: Boolean, pick: () -> Unit, importSvg: () -> Unit, importModel: () -> Unit, openLibrary3d: () -> Unit) {
     Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             ObjectTile(stringResource(R.string.camera), PanelIcons.Camera, Modifier.size(70.dp, 80.dp)) { state.addCamera() }
@@ -139,6 +162,7 @@ private fun ObjectTiles(state: EditorState, reading: Boolean, pick: () -> Unit, 
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             ObjectTile(stringResource(R.string.structure_import_svg), ChromeIcons.ImportSvg, Modifier.size(70.dp, 80.dp), onClick = importSvg)
             ObjectTile(stringResource(R.string.structure_3d_model), ChromeIcons.Model3d, Modifier.size(70.dp, 80.dp), enabled = !reading, onClick = importModel)
+            ObjectTile("3D Library", ChromeIcons.Model3d, Modifier.size(70.dp, 80.dp), onClick = openLibrary3d)
         }
     }
 }

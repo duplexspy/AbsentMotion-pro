@@ -47,7 +47,7 @@ object Themes {
 
     fun palette(context: Context, id: String): Palette =
         if (id == CUSTOM) custom(context)?.palette ?: Palette.AbsentMotion
-        else Palette.BuiltIn.firstOrNull { it.first == id }?.second ?: Palette.AbsentMotion
+        else Palette.Themes.firstOrNull { it.first == id }?.second ?: Palette.BuiltIn.firstOrNull { it.first == id }?.second ?: Palette.AbsentMotion
 
     fun import(context: Context, text: String): Theme {
         val theme = ThemeFile.parse(text)

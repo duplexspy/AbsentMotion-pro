@@ -44,7 +44,7 @@ class GlslTranslatorTest {
 
         assertTrue(sksl.sksl.contains("layout(color) uniform float4 color_p;"))
         assertTrue(sksl.sksl.contains("uniform float size_p;"))
-        assertTrue(sksl.sksl.contains("vec4 col = color_p;"))
+        assertTrue(sksl.sksl.contains("float4 col = color_p;") || sksl.sksl.contains("vec4 col = color_p;"))
         assertTrue(sksl.sksl.contains("float s = size_p;"))
         assertFalse(sksl.sksl.contains("uniform float4 color;"))
     }

@@ -229,7 +229,12 @@ private fun TopBar(onMenu: () -> Unit, search: String?, templates: Boolean, onSe
         Box(Modifier.align(Alignment.CenterStart).size(50.dp).clickable(onClick = onMenu), contentAlignment = Alignment.Center) {
             Icon(HomeIcons.Menu, stringResource(R.string.settings), Modifier.size(24.dp), tint = Am.Navy)
         }
-        if (search == null) Text("AbsentMotion", Modifier.align(Alignment.Center), color = Am.Navy, fontSize = 22.sp, fontWeight = FontWeight.Medium)
+        if (search == null) {
+            Column(Modifier.align(Alignment.Center), horizontalAlignment = Alignment.CenterHorizontally) {
+                Text("Absent Motion Pro", color = Am.Navy, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                Text("Modded by Antigravity", color = Am.Accent, fontSize = 9.sp, fontWeight = FontWeight.SemiBold)
+            }
+        }
         else HomeSearchField(search, templates, onSearch, Modifier.align(Alignment.Center).padding(horizontal = 56.dp).fillMaxWidth())
         SearchButton(search, onSearch, Modifier.align(Alignment.CenterEnd))
     }

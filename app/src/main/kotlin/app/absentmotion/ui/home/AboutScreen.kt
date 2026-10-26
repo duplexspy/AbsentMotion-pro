@@ -22,6 +22,7 @@ import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
+import androidx.compose.ui.graphics.Color
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -77,8 +78,13 @@ private fun AboutPage(onClose: () -> Unit, onLicences: () -> Unit) {
         Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp)) {
             Spacer(Modifier.height(24.dp))
             Text(stringResource(R.string.app_name), color = Am.Navy, fontSize = 26.sp, fontWeight = FontWeight.Bold)
+            Row(Modifier.padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                Box(Modifier.clip(RoundedCornerShape(4.dp)).background(Am.Accent).padding(horizontal = 6.dp, vertical = 2.dp)) {
+                    Text("Modded by Antigravity", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                }
+            }
             if (version.isNotEmpty()) Text(stringResource(if (Tier.compatible) R.string.about_version_compatible else R.string.about_version, version),
-                Modifier.padding(top = 2.dp), color = Am.HomeMid, fontSize = 14.sp)
+                Modifier.padding(top = 4.dp), color = Am.HomeMid, fontSize = 14.sp)
             Spacer(Modifier.height(20.dp))
             Body(stringResource(R.string.about_licence_line))
             Spacer(Modifier.height(12.dp))

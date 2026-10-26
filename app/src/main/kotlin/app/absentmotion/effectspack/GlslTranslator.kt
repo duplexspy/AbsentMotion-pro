@@ -41,9 +41,10 @@ object GlslTranslator {
             when (p.kind) {
                 "color" -> uniforms += "layout(color) uniform float4 $pid;"
                 "switch" -> {
-                    uniforms += "uniform float ${pid}_f;"
-                    switches += "bool $pid = ${pid}_f > 0.5;"
+                    uniforms += "uniform int ${pid}_u;"
+                    switches += "bool $pid = (${pid}_u == 1);"
                 }
+                "choice" -> uniforms += "uniform int $pid;"
                 else -> uniforms += "uniform float $pid;"
             }
         }
@@ -57,6 +58,9 @@ object GlslTranslator {
         code = code.replace(Regex("""\bacScreenSize\b"""), "size")
         code = code.replace(Regex("""\bacTime\b"""), "time")
         code = code.replace(Regex("""texture2DCv\s*\(\s*inputImg\.texture\s*,\s*"""), "gmSample(")
+        code = code.replace(Regex("""getTexSize\s*\(\s*inputImg\.size\s*\)"""), "size")
+        code = code.replace(Regex("""\binputImg\.size\b"""), "size")
+        code = code.replace(Regex("""\bgetTexSize\s*\([^)]*\)"""), "size")
         code = code.replace(Regex("""\bvec([234])\b"""), "float$1")
         code = code.replace(Regex("""\bivec([234])\b"""), "int$1")
         code = code.replace(Regex("""\bbvec([234])\b"""), "bool$1")
@@ -81,9 +85,9 @@ object GlslTranslator {
             headerBuilder.append(u).append("\n")
         }
         headerBuilder.append("""
-float4 gmSample(float2 uv) {
+half4 gmSample(float2 uv) {
   float2 clamped = clamp(uv, float2(0.0), float2(1.0));
-  return float4(image.eval(float2(clamped.x, 1.0 - clamped.y) * size));
+  return half4(image.eval(float2(clamped.x, 1.0 - clamped.y) * size));
 }
 """.trimIndent()).append("\n")
 

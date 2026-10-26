@@ -29,6 +29,7 @@ data class EffectCatalog(
     fun listed(category: String? = null): List<EffectDefinition> =
         definitions.filter {
             category == null || it.category == category ||
+            (category == "duplex" && (it.category == "custom" || it.category == "packs" || it.author == "Gold Motion" || it.packName?.contains("520") == true)) ||
             ((category == "custom" || category == "packs") && (it.category == "custom" || it.category == "packs")) ||
             (category == "new" && isNew(it))
         }
@@ -40,7 +41,8 @@ data class EffectCatalog(
 
     val categories: List<Pair<String, String>> get() {
         val base = (if (definitions.any(::isNew)) listOf("new" to "New") else emptyList()) + EffectCategories
-        val withCustom = if (definitions.any { it.category == "custom" || it.category == "packs" }) base + ("custom" to "Custom Effects") else base
+        val hasCustom = definitions.any { it.category == "custom" || it.category == "packs" || it.group != null }
+        val withCustom = if (hasCustom) base + listOf("duplex" to "Effects by Duplex", "custom" to "Custom Effects") else base
         return withCustom.map { (k, v) -> k to (categoryNames[k] ?: v) }
     }
 
@@ -52,9 +54,17 @@ data class EffectCatalog(
         runCatching { open?.invoke(p)?.use { ImageDecoder.decodeDrawable(ImageDecoder.createSource(java.nio.ByteBuffer.wrap(it.readBytes()))) } }.getOrNull()
     }
 
-    fun loadInto(load: (String) -> String): EffectCatalog {
-        val status = definitions.associate { it.id to load(it.runtimeXml()).substringBefore('\n') }
-        return copy(definitions = definitions.map { it.copy(status = status.getValue(it.id)) })
+    fun loadInto(load: (String) -> String, activeIds: Set<String> = emptySet()): EffectCatalog {
+        val status = HashMap<String, String>()
+        for (def in definitions) {
+            val isStock = def.category != "custom" && def.category != "packs" && def.group == null
+            if (isStock || def.id in activeIds) {
+                status[def.id] = load(def.runtimeXml()).substringBefore('\n')
+            } else {
+                status[def.id] = def.status
+            }
+        }
+        return copy(definitions = definitions.map { it.copy(status = status[it.id] ?: "ok") })
     }
 
     companion object {

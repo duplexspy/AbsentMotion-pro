@@ -144,17 +144,25 @@ class EngineThread(private val background: Int, context: Context? = null) {
         val ctx = appContext ?: return
         mediaScope.launch {
             val catalog = PackCatalog.mergeInto(EffectCatalog.read(ctx), ctx)
+            val activeIds = scene?.let { xml -> Regex("""id="([^"]+)"""").findAll(xml).map { it.groupValues[1] }.toSet() }.orEmpty()
             effectCatalog.value = withContext(dispatcher) {
-                if (closed) catalog else catalog.loadInto { runCatching { engine().loadEffect(it) }.getOrElse { e -> "shader error: ${e.message}" } }
+                if (closed) catalog else catalog.loadInto({ runCatching { engine().loadEffect(it) }.getOrElse { e -> "shader error: ${e.message}" } }, activeIds)
             }
             withContext(dispatcher) { renderNow() }
         }
     }
 
+    fun ensureEffectLoaded(def: app.absentmotion.effects.EffectDefinition) {
+        mediaScope.launch(dispatcher) {
+            runCatching { engine().loadEffect(def.runtimeXml()) }
+        }
+    }
+
     private val effectJob = appContext?.let { ctx -> mediaScope.launch {
         val catalog = PackCatalog.mergeInto(EffectCatalog.read(ctx), ctx)
+        val activeIds = scene?.let { xml -> Regex("""id="([^"]+)"""").findAll(xml).map { it.groupValues[1] }.toSet() }.orEmpty()
         effectCatalog.value = withContext(dispatcher) {
-            if (closed) catalog else catalog.loadInto { runCatching { engine().loadEffect(it) }.getOrElse { e -> "shader error: ${e.message}" } }
+            if (closed) catalog else catalog.loadInto({ runCatching { engine().loadEffect(it) }.getOrElse { e -> "shader error: ${e.message}" } }, activeIds)
         }
         withContext(dispatcher) { renderNow() }
     } }

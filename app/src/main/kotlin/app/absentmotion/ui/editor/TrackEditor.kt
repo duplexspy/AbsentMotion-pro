@@ -15,6 +15,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Text
@@ -44,6 +46,8 @@ import app.absentmotion.editor.TrackMode
 import app.absentmotion.editor.TrackRange
 import app.absentmotion.editor.leaveDrawing
 import app.absentmotion.editor.runTracking
+import app.absentmotion.editor.TrackType
+import app.absentmotion.editor.setTrackType
 import app.absentmotion.editor.setTrackPointCount
 import app.absentmotion.editor.trackTargets
 import app.absentmotion.editor.videoToScene
@@ -80,6 +84,26 @@ internal fun TrackOverlay(state: EditorState, mode: TrackMode, modifier: Modifie
                 val inverse = m.inverse() ?: return@awaitEachGesture
                 if (mode.running) return@awaitEachGesture
                 fun screen(p: Pt) = m.map(p).let { Offset(it.x * s + ox, it.y * s + oy) }
+                if (mode.points.size == 4) {
+                    val cp = Pt(mode.points.map { it.x }.average().toFloat(), mode.points.map { it.y }.average().toFloat())
+                    val grab = screen(cp) - down.position
+                    if (grab.getDistance() <= 36.dp.toPx()) {
+                        val initialPts = mode.points.toList()
+                        while (true) {
+                            val change = awaitPointerEvent().changes.firstOrNull { it.id == down.id } ?: break
+                            if (!change.pressed) break
+                            val at = change.position + grab
+                            val p = inverse.map(Pt((at.x - ox) / s, (at.y - oy) / s))
+                            val ddx = p.x - cp.x
+                            val ddy = p.y - cp.y
+                            for (i in initialPts.indices) {
+                                mode.points[i] = Pt((initialPts[i].x + ddx).coerceIn(0f, bounds.first - 1f), (initialPts[i].y + ddy).coerceIn(0f, bounds.second - 1f))
+                            }
+                            change.consume()
+                        }
+                        return@awaitEachGesture
+                    }
+                }
                 val index = mode.points.indices.minByOrNull { (screen(mode.points[it]) - down.position).getDistance() } ?: return@awaitEachGesture
                 val grab = screen(mode.points[index]) - down.position
                 if (grab.getDistance() > 48.dp.toPx()) return@awaitEachGesture
@@ -103,6 +127,32 @@ internal fun TrackOverlay(state: EditorState, mode: TrackMode, modifier: Modifie
         if (shown.size == 2) {
             drawLine(Color.Black, screen(shown[0]), screen(shown[1]), 3.dp.toPx())
             drawLine(Color.White, screen(shown[0]), screen(shown[1]), 1.dp.toPx())
+        } else if (shown.size == 4) {
+            val poly = shown.map(::screen)
+            for (k in 0..3) {
+                drawLine(Color.Black, poly[k], poly[(k + 1) % 4], 3.dp.toPx())
+                drawLine(mint, poly[k], poly[(k + 1) % 4], 1.5.dp.toPx())
+            }
+            if (mode.trackType == TrackType.Object) {
+                val cx = (poly[0].x + poly[2].x) / 2f
+                val cy = (poly[0].y + poly[2].y) / 2f
+                val centerOffset = Offset(cx, cy)
+                drawLine(Color.Black, Offset(cx - 10f, cy), Offset(cx + 10f, cy), 3.dp.toPx())
+                drawLine(Color.White, Offset(cx - 10f, cy), Offset(cx + 10f, cy), 1.5.dp.toPx())
+                drawLine(Color.Black, Offset(cx, cy - 10f), Offset(cx, cy + 10f), 3.dp.toPx())
+                drawLine(Color.White, Offset(cx, cy - 10f), Offset(cx, cy + 10f), 1.5.dp.toPx())
+                drawCircle(mint, 4.dp.toPx(), centerOffset)
+            } else if (mode.trackType == TrackType.Scene3D) {
+                for (step in 1..2) {
+                    val u = step / 3f
+                    val topPt = Pt(shown[0].x + (shown[1].x - shown[0].x) * u, shown[0].y + (shown[1].y - shown[0].y) * u)
+                    val botPt = Pt(shown[3].x + (shown[2].x - shown[3].x) * u, shown[3].y + (shown[2].y - shown[3].y) * u)
+                    drawLine(mint.copy(alpha = 0.5f), screen(topPt), screen(botPt), 1.dp.toPx())
+                    val leftPt = Pt(shown[0].x + (shown[3].x - shown[0].x) * u, shown[0].y + (shown[3].y - shown[0].y) * u)
+                    val rightPt = Pt(shown[1].x + (shown[2].x - shown[1].x) * u, shown[1].y + (shown[2].y - shown[1].y) * u)
+                    drawLine(mint.copy(alpha = 0.5f), screen(leftPt), screen(rightPt), 1.dp.toPx())
+                }
+            }
         }
         for (p in shown) {
             val corners = listOf(Pt(p.x - half, p.y - half), Pt(p.x + half, p.y - half), Pt(p.x + half, p.y + half), Pt(p.x - half, p.y + half)).map(::screen)
@@ -132,11 +182,14 @@ internal fun TrackPanel(state: EditorState, mode: TrackMode) {
     val scope = rememberCoroutineScope()
     DisposableEffect(mode) { onDispose { mode.job?.cancel() } }
     val idle = !mode.running
-    Column(Modifier.fillMaxSize().padding(horizontal = 12.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Choices(stringResource(R.string.track_track), listOf(stringResource(R.string.track_position) to 1, stringResource(R.string.track_position_rotation_scale) to 2), mode.points.size, idle) { state.setTrackPointCount(mode, it) }
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 12.dp, vertical = 6.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Choices("Mode", listOf("Point" to TrackType.Point, "Object" to TrackType.Object, "3D Scene" to TrackType.Scene3D), mode.trackType, idle) { state.setTrackType(mode, it) }
+        if (mode.trackType == TrackType.Point) {
+            Choices(stringResource(R.string.track_track), listOf(stringResource(R.string.track_position) to 1, stringResource(R.string.track_position_rotation_scale) to 2), mode.points.size, idle) { state.setTrackPointCount(mode, it) }
+        }
         Choices(stringResource(R.string.track_direction), TrackRange.entries.map { stringResource(RangeLabels.getValue(it)) to it }, mode.range, idle && mode.lostFrame == null) { mode.range = it }
         TargetChoice(state, mode, idle && mode.lostFrame == null)
-        Row(Modifier.fillMaxWidth().height(64.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.fillMaxWidth().height(60.dp), verticalAlignment = Alignment.CenterVertically) {
             Box(Modifier.weight(1f).fillMaxHeight(), Alignment.CenterStart) {
                 if (mode.running) {
                     Column {
@@ -145,7 +198,13 @@ internal fun TrackPanel(state: EditorState, mode: TrackMode) {
                     }
                 } else {
                     Text(
-                        mode.message.ifEmpty { stringResource(if (mode.points.size > 1) R.string.track_hint_two else R.string.track_hint_one) },
+                        mode.message.ifEmpty {
+                            when (mode.trackType) {
+                                TrackType.Object -> "Position bounding box over object to track centroid and bounds"
+                                TrackType.Scene3D -> "Align 4-corner planar grid with ground surface or wall"
+                                else -> stringResource(if (mode.points.size > 1) R.string.track_hint_two else R.string.track_hint_one)
+                            }
+                        },
                         color = if (mode.lostFrame != null) Am.Warning else Am.Caption, fontSize = 12.sp, lineHeight = 15.sp, maxLines = 4,
                     )
                 }
