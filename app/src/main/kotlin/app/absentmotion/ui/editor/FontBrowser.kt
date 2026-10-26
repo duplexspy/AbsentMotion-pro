@@ -32,7 +32,9 @@ import android.provider.OpenableColumns
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import app.absentmotion.fonts.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -64,6 +66,10 @@ internal fun FontBrowser(library: FontLibrary, onSelect: (String) -> Unit, onClo
     var revision by remember { mutableIntStateOf(0) }
     val downloads by library.revision.collectAsState()
     var error by remember { mutableStateOf<FontError?>(null) }
+    var dafontOpen by remember { mutableStateOf(false) }
+    var dafontInitialQuery by remember { mutableStateOf("") }
+    var dafontInitialUrl by remember { mutableStateOf("") }
+    var myFontsOpen by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     LaunchedEffect(search != null) { if (search != null) { searchFocus.requestFocus(); keyboard?.show() } else keyboard?.hide() }
     val importer = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
@@ -171,6 +177,38 @@ internal fun FontBrowser(library: FontLibrary, onSelect: (String) -> Unit, onClo
                     Icon(TextIcons.Import, null, Modifier.padding(6.dp).size(28.dp), tint = Am.OnDark)
                     Spacer(Modifier.width(24.dp)); Text(stringResource(R.string.import_fonts), color = Am.OnDark, fontSize = 16.sp)
                 }
+                if (app.absentmotion.pro.ProFeatures.isEnabled(app.absentmotion.pro.ProFeatures.dafontBrowser)) {
+                    Row(
+                        Modifier
+                            .height(48.dp)
+                            .fillMaxWidth()
+                            .clickable {
+                                drawer = false
+                                dafontInitialQuery = search.orEmpty()
+                                dafontInitialUrl = ""
+                                dafontOpen = true
+                            },
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(TextIcons.Cloud, null, Modifier.padding(6.dp).size(28.dp), tint = Am.Accent)
+                        Spacer(Modifier.width(24.dp))
+                        Text("Get More Fonts (DaFont)", color = Am.OnDark, fontSize = 16.sp)
+                    }
+                    Row(
+                        Modifier
+                            .height(48.dp)
+                            .fillMaxWidth()
+                            .clickable {
+                                drawer = false
+                                myFontsOpen = true
+                            },
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(ChromeIcons.Gear, null, Modifier.padding(6.dp).size(28.dp), tint = Am.OnDark)
+                        Spacer(Modifier.width(24.dp))
+                        Text("My Custom Fonts", color = Am.OnDark, fontSize = 16.sp)
+                    }
+                }
             }
         }
     }
@@ -181,6 +219,40 @@ internal fun FontBrowser(library: FontLibrary, onSelect: (String) -> Unit, onClo
         confirmButton = { TextButton({ library.deleteImported(entry.name.xml); deleting = null; revision++ }) { Text(stringResource(R.string.delete_font), color = Am.Accent) } },
         dismissButton = { TextButton({ deleting = null }) { Text(stringResource(R.string.cancel), color = Am.Accent) } }, containerColor = Am.Field, titleContentColor = Am.OnDark, textContentColor = Am.OnDark) }
     error?.let { failure -> AlertDialog(onDismissRequest = { error = null }, title = { Text(stringResource(failure.title)) }, text = { Text(stringResource(failure.body, failure.detail)) }, confirmButton = { TextButton({ error = null }) { Text(stringResource(R.string.ok), color = Am.Accent) } }, containerColor = Am.Field, titleContentColor = Am.OnDark, textContentColor = Am.OnDark) }
+
+    if (dafontOpen) {
+        app.absentmotion.pro.DafontBrowserDialog(
+            initialQuery = dafontInitialQuery,
+            initialUrl = dafontInitialUrl,
+            library = library,
+            manager = library.proManager,
+            onFontImported = { importedXml ->
+                dafontOpen = false
+                revision++
+                choose(importedXml)
+            },
+            onClose = { dafontOpen = false },
+        )
+    }
+
+    if (myFontsOpen) {
+        app.absentmotion.pro.MyFontsDialog(
+            manager = library.proManager,
+            library = library,
+            onSelect = { selectedXml ->
+                myFontsOpen = false
+                revision++
+                choose(selectedXml)
+            },
+            onOpenDafont = { urlOrQuery ->
+                myFontsOpen = false
+                dafontInitialQuery = ""
+                dafontInitialUrl = urlOrQuery
+                dafontOpen = true
+            },
+            onClose = { myFontsOpen = false },
+        )
+    }
 }
 
 private class FontError(@StringRes val title: Int, @StringRes val body: Int, val detail: String = "")

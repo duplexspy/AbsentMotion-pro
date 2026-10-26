@@ -9,8 +9,28 @@
 | **Phase 3** | Effect Thumbnails Without Lag (Pre-packed LQ atlas, LRU cache, RGB_565, fast fling deferral) | `feature/phase3-fast-thumbnails` | **Completed** | `ThumbnailPerfTest` | Pass |
 | **Phase 4** | Pre-Render for Heavy Layers & Ranges (Non-destructive cache key, invalidation map, video/WebP intermediate) | `feature/phase4-prerender` | **Completed** | `PreRenderInvalidationTest` | Pass |
 | **Phase 5** | New Vector Tool & Dashed Lines (Touch-first pen/nodes, loupe, keyframable dash/gap, SVG I/O) | `feature/phase5-vector-tool` | **Completed** | `VectorToolHarnessTest` | Pass |
-| **Phase 6** | DaFont Browser & Secure Importer (Hardened allowlisted WebView, isolated `:fontcheck` service) | `feature/phase6-dafont-browser` | Planned | `FontSecurityAndImportTest` | Pending |
+| **Phase 6** | DaFont Browser & Secure Importer (Hardened allowlisted WebView, isolated `:fontcheck` service) | `feature/phase6-dafont-browser` | **Completed** | `FontSecurityAndImportTest` | Pass |
 | **Phase 7** | Premium UI Polish (Design tokens, Classic/Premium switch, polished touch targets & sheets) | `feature/phase7-premium-ui` | Planned | UI Contrast & Regression Goldens | Pending |
+
+---
+
+## Phase 6 Execution Checklist
+- [x] Investigate mobile font security vectors (zip-slip, zip bomb, native FreeType crashes, license compliance).
+- [x] Create `docs/DAFONT_BROWSER_REPORT.md` documenting threat model, SFNT parser, `:fontcheck` IPC architecture, and custom font management.
+- [x] Update `docs/CORE_TOUCHPOINTS.md` with touched files and guard flag `ProFeatures.dafontBrowser`.
+- [x] Implement `FontSecurity.kt` with zip-slip traversal protection, zip bomb size/ratio defenses, binary SFNT/OpenType header & `name` table parser, SHA-256 fingerprinting, and sanitized filename generator.
+- [x] Implement `FontCheckService.kt` running in `android:process=":fontcheck"` for out-of-process typeface validation and headless rasterization test.
+- [x] Implement `ProFontManager.kt` managing app-private imported font storage, metadata persistence, deduplication, and missing font detection.
+- [x] Implement `DafontBrowser.kt` featuring sandboxed WebView dialog, DaFont domain allowlist, download interception, and interactive preview & license sheet.
+- [x] Implement `MyFontsManager.kt` providing custom font management dialog with live sample rendering, search filter, readme viewer, and project-dependency-aware deletion.
+- [x] Update `AndroidManifest.xml` registering `FontCheckService` in `:fontcheck` process.
+- [x] Update `FontLibrary.kt` integrating `ProFontManager` and multi-file archive extraction into `import(uri)`.
+- [x] Update `FontBrowser.kt` adding "Get More Fonts (DaFont)" and "My Custom Fonts" actions.
+- [x] Update `MainActivity.kt` with "Find on DaFont" button in missing font dialog.
+- [x] Create `FontSecurityAndImportTest.kt` unit test suite covering zip-slip, zip bomb ratio, entry count limit, file filtering, DaFont allowlist, SFNT header validation, and Safe Mode clean reversion.
+- [x] Run unit tests and regression checks (`testProDebugUnitTest --tests "app.absentmotion.pro.FontSecurityAndImportTest"`, `bug_regression_check.py`).
+- [x] Build Pro debug APK (`assembleProDebug`).
+- [x] Commit Phase 6 to branch `feature/phase6-dafont-browser`.
 
 ---
 

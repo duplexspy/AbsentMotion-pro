@@ -17,6 +17,9 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.key
@@ -127,6 +130,7 @@ class MainActivity : ComponentActivity() {
     private var crashed by mutableStateOf<CrashEntry?>(null)
     private var importFailed by mutableStateOf<String?>(null)
     private var fontOffer by mutableStateOf<Pair<EditorState, List<String>>?>(null)
+    private var dafontSearchQuery by mutableStateOf<String?>(null)
     private val fontsDeclined = HashSet<String>()
     private var engineProblem by mutableStateOf<String?>(null)
     private var problemShown by mutableStateOf(false)
@@ -251,10 +255,36 @@ class MainActivity : ComponentActivity() {
                         onDismissRequest = { declineFonts(state) },
                         title = { Text(stringResource(R.string.fonts_missing_title)) },
                         text = { Text(stringResource(R.string.fonts_missing_body, names.joinToString(", ") { FontName.parse(it).label })) },
-                        confirmButton = { TextButton({ downloadFonts(names) }) { Text(stringResource(R.string.update_download), color = Am.Accent) } },
+                        confirmButton = {
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                if (app.absentmotion.pro.ProFeatures.isEnabled(app.absentmotion.pro.ProFeatures.dafontBrowser)) {
+                                    TextButton({
+                                        val missingName = names.firstOrNull()?.let { FontName.parse(it).family }.orEmpty()
+                                        fontOffer = null
+                                        dafontSearchQuery = missingName
+                                    }) { Text("Find on DaFont", color = Am.Accent) }
+                                }
+                                TextButton({ downloadFonts(names) }) { Text(stringResource(R.string.update_download), color = Am.Accent) }
+                            }
+                        },
                         dismissButton = { TextButton({ declineFonts(state) }) { Text(stringResource(R.string.update_not_now), color = Am.Accent) } },
                         containerColor = Am.Field, titleContentColor = Am.OnDark, textContentColor = Am.OnDark,
                     )
+                }
+                dafontSearchQuery?.let { query ->
+                    val library = engine.fonts
+                    if (library != null) {
+                        app.absentmotion.pro.DafontBrowserDialog(
+                            initialQuery = query,
+                            library = library,
+                            manager = library.proManager,
+                            onFontImported = {
+                                dafontSearchQuery = null
+                                open?.let { s -> s.edit { it } }
+                            },
+                            onClose = { dafontSearchQuery = null },
+                        )
+                    }
                 }
                 if (open?.historyOpen == true) VersionHistory(store, open.projectId, open.scene.title, engine, onRestore = { restoreVersion(open.projectId, it) }) { open.historyOpen = false }
                 historyFor?.let { (id, title, damaged) ->

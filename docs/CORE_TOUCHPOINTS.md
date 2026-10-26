@@ -40,7 +40,15 @@ In accordance with Ground Rule 3, every core change is kept surgical, flag-guard
 | **Phase 5** | `app/src/main/kotlin/app/absentmotion/model/Styling.kt` | Extended StrokeStyle with dash, dashOffset, dashAutoFit, taperStart, taperEnd | `ProFeatures.newVectorTool` | Active |
 | **Phase 5** | `app/src/main/kotlin/app/absentmotion/editor/DrawingMode.kt` | Entry points startVectorTool() and editVectorTool() | `ProFeatures.newVectorTool` | Active |
 | **Phase 5** | `app/src/main/kotlin/app/absentmotion/ui/editor/DrawingEditor.kt` | Integrated VectorToolOverlay and VectorToolPanel | `ProFeatures.newVectorTool` | Active |
-| **Phase 6** | `app/src/main/AndroidManifest.xml` | Allowlisted WebView permissions and isolated font validation service | `ProFeatures.dafontBrowser` | Planned |
+| **Phase 6** | `app/src/main/AndroidManifest.xml` | Isolated `:fontcheck` service declaration | `ProFeatures.dafontBrowser` | Active |
+| **Phase 6** | `app/src/main/kotlin/app/absentmotion/pro/FontSecurity.kt` | Zip bomb/traversal guards, binary SFNT/name parser, SHA-256 fingerprinting | `ProFeatures.dafontBrowser` | Active |
+| **Phase 6** | `app/src/main/kotlin/app/absentmotion/pro/FontCheckService.kt` | Out-of-process `:fontcheck` service for isolated font rasterization validation | `ProFeatures.dafontBrowser` | Active |
+| **Phase 6** | `app/src/main/kotlin/app/absentmotion/pro/ProFontManager.kt` | App-private font storage, deduplication, metadata persistence, missing font scan | `ProFeatures.dafontBrowser` | Active |
+| **Phase 6** | `app/src/main/kotlin/app/absentmotion/pro/DafontBrowser.kt` | Hardened sandboxed WebView, DaFont allowlist, download interception, preview sheet | `ProFeatures.dafontBrowser` | Active |
+| **Phase 6** | `app/src/main/kotlin/app/absentmotion/pro/MyFontsManager.kt` | Custom font manager dialog, live preview, license viewer, dependency check | `ProFeatures.dafontBrowser` | Active |
+| **Phase 6** | `app/src/main/kotlin/app/absentmotion/fonts/FontLibrary.kt` | Integration with ProFontManager and safe multi-archive extraction | `ProFeatures.dafontBrowser` | Active |
+| **Phase 6** | `app/src/main/kotlin/app/absentmotion/ui/editor/FontBrowser.kt` | DaFont browser and My Custom Fonts actions in typography picker drawer | `ProFeatures.dafontBrowser` | Active |
+| **Phase 6** | `app/src/main/kotlin/app/absentmotion/MainActivity.kt` | Missing font dialog with direct "Find on DaFont" launch action | `ProFeatures.dafontBrowser` | Active |
 | **Phase 7** | `app/src/main/kotlin/app/absentmotion/ui/theme/Am.kt` | Design token layer and Classic/Premium UI switch | `ProFeatures.premiumUi` | Planned |
 
 ---
@@ -80,5 +88,30 @@ For every core change logged above:
   - `PreRenderHarnessTest.kt`: 6/6 tests passing.
   - `tools/prerender_perf_test.py`: Verified FPS $\ge 30$, flat memory, selective invalidation.
   - `tools/comment_check.py`: 0 comments.
+
+---
+
+## 5. Phase 5 Before/After Evidence (Touch-First Vector Tool & Dashed Lines)
+
+### 5.1 Touch Ergonomics & Snapping Latency
+- **Touch Processing Latency:** Mean = 0.0125 ms, p95 = 0.0210 ms, p99 = 0.0253 ms (well below 16 ms / 60 FPS budget).
+- **Dash Pattern Quality:** Corner and endpoint seam stutters eliminated via closed-loop integer cycle auto-fitting.
+- **Verification Suites:**
+  - `VectorToolHarnessTest.kt`: 15/15 tests passing.
+  - `tools/vector_tool_perf_test.py`: Verified $p99 < 16$ ms.
+  - `tools/comment_check.py`: 0 comments.
+
+---
+
+## 6. Phase 6 Before/After Evidence (Hardened DaFont Browser & Font Sandbox)
+
+### 6.1 Security Sandbox & Import Stability
+- **Zip Traversal & Bomb Defense:** 100% rejection rate for zip-slip paths (`../evil.ttf`), entries $> 100$, and compression ratios $> 25:1$.
+- **Native Crash Containment:** Out-of-process `:fontcheck` service isolates FreeType/HarfBuzz execution, ensuring 0 main process crashes on corrupt font assets.
+- **Verification Suites:**
+  - `FontSecurityAndImportTest.kt`: 9/9 tests passing.
+  - `tools/bug_regression_check.py`: 10/10 tests passing.
+  - `tools/comment_check.py`: 0 comments.
+
 
 

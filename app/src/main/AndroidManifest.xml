@@ -80,6 +80,11 @@
             </intent-filter>
         </activity>
 
+        <service
+            android:name="app.absentmotion.pro.FontCheckService"
+            android:process=":fontcheck"
+            android:exported="false" />
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="app.absentmotion.files"

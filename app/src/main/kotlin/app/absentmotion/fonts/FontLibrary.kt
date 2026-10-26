@@ -33,6 +33,7 @@ class FontLibrary(context: Context) {
     private val imported = File(this.context.filesDir, "fonts/imported").apply { mkdirs() }
     private val cache = File(this.context.filesDir, "fonts/google").apply { mkdirs() }
     private val builtin = File(this.context.filesDir, "fonts/builtin").apply { mkdirs() }
+    val proManager: app.absentmotion.pro.ProFontManager by lazy { app.absentmotion.pro.ProFontManager(this.context) }
     private val bundledNames: Set<String> by lazy {
         this.context.assets.list("fonts").orEmpty().flatMap { folder ->
             this.context.assets.list("fonts/$folder").orEmpty().filter { it.endsWith(".ttf") }.map { "$folder/$it" }
@@ -78,7 +79,7 @@ class FontLibrary(context: Context) {
             .putString("recent", JSONArray(read("recent") - name).toString()).apply()
         fontRevision.update { it + 1 }
     }
-    fun importedFonts(): List<FontName> = imported.listFiles()?.filter { it.extension.lowercase() in listOf("ttf", "otf") }
+    fun importedFonts(): List<FontName> = imported.listFiles()?.filter { it.extension.lowercase() in listOf("ttf", "otf", "ttc") }
         ?.sortedByDescending { it.lastModified() }?.map { FontName("imported", it.name) } ?: emptyList()
     private fun cachedFile(name: String): File = File(cache,
         MessageDigest.getInstance("SHA-256").digest(name.toByteArray()).joinToString("") { "%02x".format(it) } + ".ttf")
@@ -153,7 +154,20 @@ class FontLibrary(context: Context) {
         val filename = context.contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use {
             if (it.moveToFirst()) it.getString(0) else null
         } ?: uri.lastPathSegment ?: "font.ttf"
-        require(filename.substringAfterLast('.', "").lowercase() in listOf("ttf", "otf")) { "Select a .ttf or .otf font." }
+        val ext = filename.substringAfterLast('.', "").lowercase()
+        if (app.absentmotion.pro.ProFeatures.isEnabled(app.absentmotion.pro.ProFeatures.dafontBrowser) && ext == "zip") {
+            val temporary = File.createTempFile("import-zip-", ".zip", cache)
+            try {
+                context.contentResolver.openInputStream(uri)?.use { input -> temporary.outputStream().use { output ->
+                    copyLimited(input, output)
+                } } ?: error("Cannot read zip.")
+                val list = proManager.importArchive(temporary)
+                require(list.isNotEmpty()) { "No valid fonts found in archive." }
+                fontRevision.update { it + 1 }
+                return@withContext FontName("imported", list.first().fileName)
+            } finally { temporary.delete() }
+        }
+        require(ext in listOf("ttf", "otf", "ttc")) { "Select a .ttf, .otf, or .zip font." }
         val clean = File(filename).name.replace(Regex("[^\\p{L}\\p{N} ._-]"), "_")
         var destination = File(imported, clean)
         var number = 1
@@ -167,6 +181,9 @@ class FontLibrary(context: Context) {
             imported.listFiles()?.firstOrNull { it.isFile && it.length() == temporary.length() && it.readBytes().contentEquals(temporary.readBytes()) }
                 ?.let { return@withContext FontName("imported", it.name) }
             check(temporary.renameTo(destination)) { "Cannot save font." }
+            if (app.absentmotion.pro.ProFeatures.isEnabled(app.absentmotion.pro.ProFeatures.dafontBrowser)) {
+                runCatching { proManager.importFontFile(destination) }
+            }
             fontRevision.update { it + 1 }
             FontName("imported", destination.name)
         } finally { temporary.delete() }
