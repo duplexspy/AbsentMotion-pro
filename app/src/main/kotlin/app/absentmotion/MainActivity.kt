@@ -166,7 +166,6 @@ class MainActivity : ComponentActivity() {
         lifecycleScope.launch { kotlinx.coroutines.delay(15_000); autoBackupIfDue(applicationContext, settings) }
         lifecycleScope.launch { kotlinx.coroutines.delay(10_000); app.absentmotion.pro.ProFeatures.onStableRunning(applicationContext) }
         lifecycleScope.launch(Dispatchers.IO) { ShapeCatalog.load(applicationContext) }
-        lifecycleScope.launch(Dispatchers.IO) { app.absentmotion.ai.AiDevice.recover(applicationContext) }
         lifecycleScope.launch(Dispatchers.IO) { app.absentmotion.effectspack.PackStore.installBundledPacks(applicationContext) }
         lifecycleScope.launch(Dispatchers.IO) { runCatching { app.absentmotion.export.MediaStoreExport(applicationContext).discardAbandoned() } }
         val openElement: (String) -> Unit = { id ->
@@ -332,12 +331,14 @@ class MainActivity : ComponentActivity() {
                         val isZip = sniff.size >= 2 && sniff[0] == 'P'.code.toByte() && sniff[1] == 'K'.code.toByte()
                         var handled = false
                         if (isZip) {
-                            val hasManifest = runCatching {
+                            val isPackOrXmlZip = runCatching {
                                 contentResolver.openInputStream(uri)?.let { java.util.zip.ZipInputStream(it) }?.use { zip ->
                                     var found = false
                                     while (true) {
                                         val entry = zip.nextEntry ?: break
-                                        if (entry.name == "manifest.json" || entry.name.endsWith("/manifest.json")) {
+                                        val name = entry.name.lowercase()
+                                        if (name == "manifest.json" || name.endsWith("/manifest.json") ||
+                                            (name.endsWith(".xml") && (name.contains("effect") || name.contains("shader") || name.contains("custom")))) {
                                             found = true
                                             break
                                         }
@@ -346,7 +347,7 @@ class MainActivity : ComponentActivity() {
                                     found
                                 }
                             }.getOrNull() == true
-                            if (hasManifest) {
+                            if (isPackOrXmlZip) {
                                 contentResolver.openInputStream(uri)?.use { input ->
                                     app.absentmotion.effectspack.PackStore.importZip(applicationContext, input)
                                 }
@@ -355,12 +356,14 @@ class MainActivity : ComponentActivity() {
                             }
                         } else {
                             val textStart = sniff.toString(Charsets.UTF_8).removePrefix("\uFEFF").trimStart()
-                            if (textStart.startsWith("<") && textStart.contains("<effect") && (textStart.contains("<params") || textStart.contains("<param") || textStart.contains("glsl="))) {
+                            if (textStart.startsWith("<") && (textStart.contains("<effect") || textStart.contains("<scene") || textStart.contains("glsl="))) {
                                 val fullText = contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() } ?: ""
                                 if (fullText.isNotBlank()) {
-                                    app.absentmotion.effectspack.PackStore.importSingleXml(applicationContext, fullText)
-                                    app.absentmotion.effectspack.PackCatalog.refresh(applicationContext)
-                                    handled = true
+                                    if (fullText.contains("<effect") || fullText.contains("glsl=")) {
+                                        app.absentmotion.effectspack.PackStore.importSingleXml(applicationContext, fullText)
+                                        app.absentmotion.effectspack.PackCatalog.refresh(applicationContext)
+                                        handled = true
+                                    }
                                 }
                             }
                         }

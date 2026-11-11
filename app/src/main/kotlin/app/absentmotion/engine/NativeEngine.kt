@@ -5,8 +5,9 @@ import android.graphics.Rect
 import android.graphics.Bitmap
 import android.view.Surface
 
-class NativeEngine(backend: Backend) : AutoCloseable {
+class NativeEngine(val backend: Backend) : AutoCloseable {
     enum class Backend { GRAPHITE, GANESH }
+    val openGl: Boolean get() = backend == Backend.GANESH
 
     private var handle = nativeCreate(backend.ordinal)
     val failed: Boolean get() = nativeFailed(handle)
@@ -79,6 +80,8 @@ class NativeEngine(backend: Backend) : AutoCloseable {
     fun hitTest(x: Float, y: Float, timeMs: Double): Long = nativeHitTest(handle, x, y, timeMs)
 
     fun still(timeMs: Double, width: Int, height: Int): ByteArray? = nativeStill(handle, timeMs, width, height)
+
+    fun previewStill(timeMs: Double, width: Int, height: Int, accurateBlur: Boolean = false): ByteArray? = still(timeMs, width, height)
 
     fun shapeIcon(xml: String, size: Int, color: Int): ByteArray? = nativeShapeIcon(handle, xml.toByteArray(), size, color)
 

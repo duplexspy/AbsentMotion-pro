@@ -1,0 +1,19 @@
+{
+ "id": "puppet",
+ "name": "Puppet Pin",
+ "category": "distort",
+ "since": "4.2.0",
+ "description": "Bends the layer like a puppet: put pins on it, then drag or animate the pins and the picture follows them smoothly.",
+ "params": [
+  {
+   "id": "falloff",
+   "label": "Falloff",
+   "type": "float",
+   "default": 1,
+   "min": 0.1,
+   "max": 4,
+   "step": 0.01
+  }
+ ],
+ "sksl": "uniform shader image;\nuniform float2 size;\nuniform float2 layer;\nuniform float3x3 toLayer;\nuniform float3x3 fromLayer;\nuniform float falloff;\nuniform float2 pin1;\nuniform float2 rest1;\nuniform float2 pin2;\nuniform float2 rest2;\nuniform float2 pin3;\nuniform float2 rest3;\nuniform float2 pin4;\nuniform float2 rest4;\nuniform float2 pin5;\nuniform float2 rest5;\nuniform float2 pin6;\nuniform float2 rest6;\nuniform float2 pin7;\nuniform float2 rest7;\nuniform float2 pin8;\nuniform float2 rest8;\nuniform float2 pin9;\nuniform float2 rest9;\nuniform float2 pin10;\nuniform float2 rest10;\nuniform float2 pin11;\nuniform float2 rest11;\nuniform float2 pin12;\nuniform float2 rest12;\nuniform float2 pin13;\nuniform float2 rest13;\nuniform float2 pin14;\nuniform float2 rest14;\nuniform float2 pin15;\nuniform float2 rest15;\nuniform float2 pin16;\nuniform float2 rest16;\n\nhalf4 at(float2 p) {\n    float3 g = fromLayer * float3(p, 1.0);\n    return image.eval(g.xy / g.z);\n}\n\nvoid accumPin(float2 p, float2 cur, float2 rst, float power, inout float2 disp, inout float totalWeight) {\n    if (rst.x > -90000.0 && cur.x > -90000.0) {\n        float2 diff = p - cur;\n        float distSq = dot(diff, diff);\n        float w = 1.0 / (pow(distSq + 16.0, power) + 0.0001);\n        disp += (cur - rst) * w;\n        totalWeight += w;\n    }\n}\n\nhalf4 main(float2 coord) {\n    float3 h = toLayer * float3(coord, 1.0);\n    float2 lp = h.xy / h.z;\n    float power = 0.5 + 0.5 / (1.0 + clamp(falloff, 0.1, 4.0));\n    float totalWeight = 0.0;\n    float2 disp = float2(0.0);\n\n    accumPin(lp, pin1, rest1, power, disp, totalWeight);\n    accumPin(lp, pin2, rest2, power, disp, totalWeight);\n    accumPin(lp, pin3, rest3, power, disp, totalWeight);\n    accumPin(lp, pin4, rest4, power, disp, totalWeight);\n    accumPin(lp, pin5, rest5, power, disp, totalWeight);\n    accumPin(lp, pin6, rest6, power, disp, totalWeight);\n    accumPin(lp, pin7, rest7, power, disp, totalWeight);\n    accumPin(lp, pin8, rest8, power, disp, totalWeight);\n    accumPin(lp, pin9, rest9, power, disp, totalWeight);\n    accumPin(lp, pin10, rest10, power, disp, totalWeight);\n    accumPin(lp, pin11, rest11, power, disp, totalWeight);\n    accumPin(lp, pin12, rest12, power, disp, totalWeight);\n    accumPin(lp, pin13, rest13, power, disp, totalWeight);\n    accumPin(lp, pin14, rest14, power, disp, totalWeight);\n    accumPin(lp, pin15, rest15, power, disp, totalWeight);\n    accumPin(lp, pin16, rest16, power, disp, totalWeight);\n\n    if (totalWeight <= 0.00001) {\n        return image.eval(coord);\n    }\n    float2 lp_src = lp - disp / totalWeight;\n    return at(lp_src);\n}\n"
+}

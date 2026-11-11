@@ -52,6 +52,7 @@ internal object HomeIcons {
             "A1 1 0 0 1 3 20L3 15A1 1 0 0 1 4 14ZM17 14L20 14A1 1 0 0 1 21 15L21 20A1 1 0 0 1 20 21L17 21A1 1 0 0 1 16 20L16 15A1 1 0 0 1 17 14Z", fill = "M4 3L20 3A1 1 0 0 1 21 4L21 9A1 1 0 0 1 20 10L4 10A1 1 0 0 1 3 9L3 4A1 1 0 0 1 4 3Z", width = 1.8f)
     val TemplatesTab = icon("TemplatesTab", stroke = "M4 3L20 3A1 1 0 0 1 21 4L21 9A1 1 0 0 1 20 10L4 10A1 1 0 0 1 3 9L3 4A1 1 0 0 1 4 3ZM4 14L11 14A1 1 0 0 1 12 15L12 20A1 1 0 0 1 11 21L4 21" +
             "A1 1 0 0 1 3 20L3 15A1 1 0 0 1 4 14ZM17 14L20 14A1 1 0 0 1 21 15L21 20A1 1 0 0 1 20 21L17 21A1 1 0 0 1 16 20L16 15A1 1 0 0 1 17 14Z", width = 1.8f)
+    val Labs = icon("Labs", stroke = "M9 3L15 3M10 3L10 8L4.5 18.5C3.8 19.8 4.7 21.5 6.2 21.5L17.8 21.5C19.3 21.5 20.2 19.8 19.5 18.5L14 8L14 3M7 15L17 15", width = 1.8f)
 }
 
 private fun icon(name: String, stroke: String? = null, fill: String? = null, width: Float = 1.6f, mirror: Boolean = false): ImageVector =

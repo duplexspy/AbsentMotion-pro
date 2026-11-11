@@ -275,7 +275,7 @@ fun EffectBrowser(state: EditorState) {
             val rawResults = if (audio) emptyList() else if (searching) catalog.search(query) else catalog.listed(category).let { list -> if (isCustomCategory) list else list.sortedBy { it.name.lowercase() } }
             val allGroups = remember(rawResults) { rawResults.mapNotNull { it.group }.distinct().sorted() }
             val results = if (isCustomCategory && selectedGroupFilter != null) rawResults.filter { it.group == selectedGroupFilter } else rawResults
-            val actions = if (searching || category == "ai") AiAction.entries.filter { it.offered && matchesSearch(query, stringResource(it.title)) } else emptyList()
+            val actions = emptyList<AiAction>()
             val presets = if (audio) emptyList() else catalog.definitions.flatMap { d -> d.presets.map { d to it } }
                 .filter { (d, p) -> if (searching) query.isNotBlank() && matchesSearch(query, p.name) else d.category == category }
             val gridState = rememberLazyGridState()
@@ -440,10 +440,6 @@ fun EffectBrowser(state: EditorState) {
         }
         }
     }
-    AiVideoDialog(ai, state.scene)
-    AiNoiseDialog(ai)
-    AiEnhanceDialog(ai, state.scene) { catalog.find(QUICK_SHARPEN)?.let(::pick) }
-    AiProgressDialog(ai)
 
     if (studioOpen) {
         EffectsPackStudio(onClose = {

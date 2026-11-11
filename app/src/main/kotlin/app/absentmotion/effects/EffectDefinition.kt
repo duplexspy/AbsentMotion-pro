@@ -119,6 +119,8 @@ data class EffectDefinition(
         return param.copy(min = lo, max = maxOf(lo, if (param.layerTime) minOf(param.max, seconds) else param.max))
     }
 
+    fun shown(param: EffectParam, instance: XmlNode, t: Float): Boolean = true
+
     fun runtimeXml(): String = XmlNode("effect", listOfNotNull("id" to id, sksl?.let { "sksl" to it }).toMap(),
         params.map { XmlNode("param", mapOf("name" to it.id, "value" to it.missingDefault)) }).toXml()
 

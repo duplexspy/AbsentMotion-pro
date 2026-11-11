@@ -1,5 +1,6 @@
 package app.absentmotion.ui.editor
 
+import app.absentmotion.editor.addModel
 import app.absentmotion.platform.BackHandler
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -45,7 +46,9 @@ import app.absentmotion.library.TemplateStore
 import app.absentmotion.ui.home.EmbedRequest
 import app.absentmotion.ui.home.rememberFileBitmap
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableIntStateOf
@@ -211,16 +214,38 @@ private fun TemplateCell(template: SavedTemplate, modifier: Modifier, onClick: (
 
 @Composable
 private fun QuickBar(state: EditorState, modifier: Modifier) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val scope = rememberCoroutineScope()
     var captions by remember { mutableStateOf(false) }
+    var onlineAssets by remember { mutableStateOf(false) }
     Column(modifier) {
         QuickItem(R.string.add_quick_freehand_brush, ChromeIcons.Freehand, height = 44.dp, iconTop = 4.dp, labelTop = 28.dp, onClick = { state.startFreehand() })
         QuickItem("Vector Pro", ChromeIcons.VectorDrawing, height = 44.dp, iconTop = 4.dp, labelTop = 28.dp, onClick = { state.startVectorTool() })
         QuickItem("Classic Vector", DrawingIcons.AddPoint, height = 44.dp, iconTop = 4.dp, labelTop = 28.dp, onClick = { state.startVectorDrawing() })
+        QuickItem("3D & Media", ChromeIcons.ObjectTab, height = 39.dp, iconTop = 3.dp, labelTop = 25.dp, onClick = { onlineAssets = true })
         QuickItem(R.string.add_quick_text, ChromeIcons.TextTool, height = 39.dp, iconTop = 3.dp, labelTop = 25.dp, onClick = { state.addText() })
-        QuickItem(R.string.add_quick_captions, ChromeIcons.Captions, height = 39.dp, iconTop = 3.dp, labelTop = 25.dp, onClick = { captions = true })
         BarButton(ChromeIcons.CloseThick, stringResource(R.string.action_close), Modifier.fillMaxWidth().weight(1f)) { state.addOpen = false }
     }
-    if (captions) CaptionsSheet(state) { captions = false }
+    if (onlineAssets) app.absentmotion.pro.assets.OnlineAssetPickerSheet(
+        onDismiss = { onlineAssets = false },
+        onImportAsset = { file, asset ->
+            onlineAssets = false
+            scope.launch {
+                val store = app.absentmotion.library.ProjectStore(context)
+                if (asset.type == app.absentmotion.pro.assets.AssetType.MODEL_3D || file.extension.lowercase() in setOf("obj", "glb", "gltf")) {
+                    val modelDir = java.io.File(store.mediaDir(state.projectId), "model-${System.currentTimeMillis()}")
+                    modelDir.mkdirs()
+                    val destFile = java.io.File(modelDir, file.name)
+                    file.copyTo(destFile, overwrite = true)
+                    state.addModel(destFile.toURI().toString(), asset.title)
+                } else {
+                    val destFile = java.io.File(store.mediaDir(state.projectId), file.name)
+                    file.copyTo(destFile, overwrite = true)
+                    state.addPictures(context, listOf(android.net.Uri.fromFile(destFile)))
+                }
+            }
+        }
+    )
 }
 
 @Composable

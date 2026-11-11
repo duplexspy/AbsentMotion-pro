@@ -26,6 +26,37 @@ object GlslTranslator {
             return TranslationResult("", emptyMap(), "Shader exceeds maximum size of 64 KB")
         }
 
+        // 1. Direct Official Absent Motion SkSL Shader Support
+        val officialSkslMainRegex = Regex("""half4\s+main\s*\(\s*float2\s+([a-zA-Z0-9_]+)\s*\)""")
+        if (officialSkslMainRegex.containsMatchIn(rawGlsl)) {
+            val headerBuilder = StringBuilder()
+            if (!rawGlsl.contains(Regex("""\buniform\s+shader\s+image\b"""))) {
+                headerBuilder.append("uniform shader image;\n")
+            }
+            if (!rawGlsl.contains(Regex("""\buniform\s+float2\s+size\b"""))) {
+                headerBuilder.append("uniform float2 size;\n")
+            }
+            if (!rawGlsl.contains(Regex("""\buniform\s+float\s+time\b"""))) {
+                headerBuilder.append("uniform float time;\n")
+            }
+
+            for (p in params) {
+                if (!rawGlsl.contains(Regex("""\buniform\s+[a-zA-Z0-9_]+\s+${Regex.escape(p.id)}\b""")) &&
+                    !rawGlsl.contains(Regex("""\blayout\s*\([^)]*\)\s*uniform\s+[a-zA-Z0-9_]+\s+${Regex.escape(p.id)}\b"""))) {
+                    when (p.kind) {
+                        "color" -> headerBuilder.append("layout(color) uniform float4 ${p.id};\n")
+                        "switch" -> headerBuilder.append("uniform int ${p.id};\n")
+                        "choice" -> headerBuilder.append("uniform int ${p.id};\n")
+                        else -> headerBuilder.append("uniform float ${p.id};\n")
+                    }
+                }
+            }
+
+            val finalSksl = if (headerBuilder.isNotEmpty()) headerBuilder.toString() + "\n" + rawGlsl.trim() else rawGlsl.trim()
+            return TranslationResult(finalSksl, emptyMap(), null)
+        }
+
+        // 2. Legacy Gold Motion GLSL Translation
         val renamed = linkedMapOf<String, String>()
         for (p in params) {
             if (p.originalId in AutomaticUniforms || p.originalId in ReservedKeywords) {

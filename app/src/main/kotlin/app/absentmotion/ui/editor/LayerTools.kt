@@ -56,6 +56,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.absentmotion.editor.EditorPanel
 import app.absentmotion.editor.EditorState
+import app.absentmotion.editor.canTrack
+import app.absentmotion.editor.startTracking
 import app.absentmotion.editor.KeypadRequest
 import app.absentmotion.editor.editDrawing
 import app.absentmotion.editor.editPoints
@@ -98,6 +100,7 @@ fun LayerTools(state: EditorState, modifier: Modifier = Modifier, side: Boolean 
     val drawn = state.selected?.shape?.isEmpty() == true
     var properties by remember(state.selectedId) { mutableStateOf(false) }
     var moving by remember(state.selectedId) { mutableStateOf(false) }
+    var colorGradingOpen by remember(state.selectedId) { mutableStateOf(false) }
     if (properties) {
         ElementProperties(state, { properties = false }, modifier)
         return
@@ -131,6 +134,7 @@ fun LayerTools(state: EditorState, modifier: Modifier = Modifier, side: Boolean 
         val effects = Tile(Effects) { state.effectIndex = -1; state.panel = EditorPanel.Effects }
         val transform = Tile(MoveTransform) { state.panel = EditorPanel.MoveTransform }
         val blending = Tile(Blending) { state.panel = EditorPanel.Blending }
+        val grade = Tile(ColorGrade) { colorGradingOpen = true }
         val rows = when (kind) {
             "audio" -> listOf(
                 listOf(presets, Tile(Effects) { openEffectBrowser(state, "audio") }, Tile(VoiceFilters) { openEffectBrowser(state, "voice") }),
@@ -141,22 +145,32 @@ fun LayerTools(state: EditorState, modifier: Modifier = Modifier, side: Boolean 
                 listOf(presets, Tile(CameraMoves) { state.playing = false; moving = true }),
             )
             "model" -> listOf(
-                listOf(Tile(ModelOptions) { state.panel = EditorPanel.Model }, blending),
+                listOf(Tile(ModelOptions) { state.panel = EditorPanel.Model }, grade, blending),
                 listOf(transform, presets, effects),
             )
-            "nullobj" -> listOf(listOf(transform, presets, effects))
+            "nullobj" -> listOf(listOf(transform, presets, effects, grade))
             else -> {
                 val edit = when {
+                    state.selected?.canTrack == true -> Tile(TrackMotion) { state.startTracking() }
                     kind == "text" -> Tile(EditText) { state.panel = EditorPanel.EditText }
                     kind == "embedScene" -> if (state.selected?.link != null) Tile(ElementPropsButton) { properties = true } else null
                     kind == "drawing" -> Tile(EditDrawing) { state.editDrawing() }
                     drawn -> Tile(EditPoints, enabled = state.selected?.contours != null) { state.editVectorTool() }
                     else -> Tile(EditShape) { state.panel = EditorPanel.EditShape }
                 }
-                listOf(
-                    listOf(Tile(ColorFill) { state.panel = EditorPanel.ColorFill }, Tile(BorderShadow) { state.panel = EditorPanel.BorderShadow }, blending),
-                    listOfNotNull(transform, edit, presets, effects),
-                )
+                val hasVideoInScene = state.selected?.canTrack != true && state.scene.layers.any { it.canTrack }
+                val row2 = listOfNotNull(transform, edit, presets, effects)
+                if (hasVideoInScene) {
+                    listOf(
+                        listOf(Tile(ColorFill) { state.panel = EditorPanel.ColorFill }, grade, Tile(BorderShadow) { state.panel = EditorPanel.BorderShadow }, blending, Tile(TrackMotion) { state.startTracking() }),
+                        row2,
+                    )
+                } else {
+                    listOf(
+                        listOf(Tile(ColorFill) { state.panel = EditorPanel.ColorFill }, grade, Tile(BorderShadow) { state.panel = EditorPanel.BorderShadow }, blending),
+                        row2,
+                    )
+                }
             }
         }
         val shown = if (side) rows.flatten().filterNotNull().chunked(2) else rows
@@ -165,6 +179,11 @@ fun LayerTools(state: EditorState, modifier: Modifier = Modifier, side: Boolean 
             Row(Modifier.fillMaxWidth().height(160.px), Arrangement.spacedBy(17.px)) {
                 for (tile in row) if (tile == null) Spacer(Modifier.weight(1f)) else ToolButton(tile.tool, Modifier.weight(1f), tile.enabled, tile.onClick)
                 if (side) repeat(2 - row.size) { Spacer(Modifier.weight(1f)) }
+            }
+        }
+        if (colorGradingOpen) {
+            app.absentmotion.pro.ColorGradingStudioDialog(state) {
+                colorGradingOpen = false
             }
         }
     }
@@ -185,14 +204,16 @@ private val ToolShape = RoundedCornerShape(4.dp)
 private val Square = androidx.compose.foundation.shape.CornerSize(0.dp)
 private val ToolLabel get() = Am.OnDarkDim
 
-private class Tool(@StringRes val label: Int, val icon: ImageVector, val iconY: Float)
+private class Tool(@StringRes val label: Int, val icon: ImageVector, val iconY: Float, val customLabel: String? = null)
 
 private class Tile(val tool: Tool, val enabled: Boolean = true, val onClick: () -> Unit)
 
+private val ColorGrade = Tool(R.string.color, PanelIcons.Palette, 18.1f, customLabel = "Color Grade")
 private val ColorFill = Tool(R.string.layer_tool_fill_color, PanelIcons.PaintBucket, 18.1f)
 private val BorderShadow = Tool(R.string.layer_tool_frame_shadow, PanelIcons.BorderShadow, 18.1f)
 private val Blending = Tool(R.string.layer_tool_opacity_blend, PanelIcons.Blending, 18.3f)
 private val MoveTransform = Tool(R.string.layer_tool_transform, PanelIcons.MoveTransform, 18.1f)
+private val TrackMotion = Tool(R.string.draw_title_track_motion, PanelIcons.TrackMotion, 16f)
 private val EditShape = Tool(R.string.layer_tool_shape_options, PanelIcons.EditShape, 16f)
 private val EditText = Tool(R.string.layer_tool_edit_text, TextIcons.Edit, 16f)
 private val ElementPropsButton = Tool(R.string.asset_properties, PanelIcons.EditShape, 16f)
@@ -227,7 +248,7 @@ private fun ToolButton(tool: Tool, modifier: Modifier, enabled: Boolean = true, 
     ) {
         PanelIcon(tool.icon, Am.OnDark, Modifier.align(Alignment.TopCenter).offset(y = (tool.iconY - 12f).dp))
         Text(
-            stringResource(tool.label), Modifier.align(Alignment.TopCenter).offset(y = 32.dp).fillMaxWidth().height(24.dp).padding(horizontal = 4.dp)
+            tool.customLabel ?: stringResource(tool.label), Modifier.align(Alignment.TopCenter).offset(y = 32.dp).fillMaxWidth().height(24.dp).padding(horizontal = 4.dp)
                 .wrapContentHeight(Alignment.CenterVertically),
             color = ToolLabel, lineHeight = 11.5.sp, maxLines = 2, textAlign = androidx.compose.ui.text.style.TextAlign.Center,
             autoSize = androidx.compose.foundation.text.TextAutoSize.StepBased(7.sp, 10.sp, 0.5.sp),
@@ -298,7 +319,7 @@ fun LayerPanel(state: EditorState, modifier: Modifier = Modifier) {
                 EditorPanel.Blending -> BlendingPanel(state, layer, Modifier.fillMaxSize())
                 EditorPanel.Camera -> CameraPanel(state, layer, Modifier.fillMaxSize())
                 EditorPanel.Model -> ModelPanel(state, layer, Modifier.fillMaxSize())
-                EditorPanel.Tools, EditorPanel.EditText, EditorPanel.Effects -> {}
+                EditorPanel.Tools, EditorPanel.EditText, EditorPanel.Effects, EditorPanel.Crop, EditorPanel.Edge -> {}
             }
             Box(Modifier.width(2.px).fillMaxHeight().background(PanelDark))
             if (move) Box(Modifier.align(Alignment.CenterEnd).width(2.px).fillMaxHeight().background(PanelDark))

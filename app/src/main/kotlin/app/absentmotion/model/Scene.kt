@@ -300,6 +300,9 @@ data class Layer(val node: XmlNode, val t: Float = 0f, val snap: ClosedFloatingP
     fun withValue(ref: PropRef, value: String): Layer =
         withElement(ref, (element(ref) ?: XmlNode(ref.name)).withValueAt(t, value, snap))
 
+    fun resetValue(ref: PropRef, value: String): Layer =
+        withElement(ref, XmlNode(ref.name, mapOf("value" to value)))
+
     fun keyframes(ref: PropRef): List<Keyframe> = element(ref)?.keyframes ?: emptyList()
 
     fun onKeyframe(ref: PropRef): Boolean = (element(ref)?.keyframeAt(snap) ?: -1) >= 0

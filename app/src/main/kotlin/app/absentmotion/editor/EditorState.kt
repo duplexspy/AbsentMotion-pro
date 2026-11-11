@@ -1,5 +1,6 @@
 package app.absentmotion.editor
 
+import android.view.Choreographer
 import androidx.annotation.StringRes
 import app.absentmotion.R
 import app.absentmotion.ai.withMattesFollowing
@@ -24,12 +25,13 @@ import app.absentmotion.model.Scene
 enum class EditorPanel(@StringRes val title: Int) {
     Tools(0), Speed(R.string.edit_panel_time_remapping), MoveTransform(R.string.edit_panel_transform), ColorFill(R.string.edit_panel_fill_color),
     EditShape(R.string.edit_panel_shape_options), EditText(R.string.edit_panel_edit_text),
-    BorderShadow(R.string.edit_panel_frame_shadow), Blending(R.string.edit_panel_opacity_blend), Effects(R.string.edit_panel_effects), Camera(R.string.edit_panel_camera_options), Model(R.string.edit_panel_model_options),
+    BorderShadow(R.string.edit_panel_frame_shadow), Blending(R.string.edit_panel_opacity_blend), Effects(R.string.edit_panel_effects), Camera(R.string.edit_panel_camera_options), Model(R.string.edit_panel_model_options), Crop(R.string.layer_tool_crop),
+    Edge(R.string.cutout_edge),
 }
 
 data class KeyTarget(val ref: PropRef, val default: String, val type: String = "float")
 
-data class KeypadField(val label: String, val value: Float)
+data class KeypadField(val label: String, val value: Float, val unit: String = "", val min: Float = -Float.MAX_VALUE, val max: Float = Float.MAX_VALUE)
 
 data class KeypadRequest(val fields: List<KeypadField>, val active: Int, val onDone: (List<Float>) -> Unit)
 
@@ -59,6 +61,18 @@ object Glide {
 }
 
 class PointAdjust(val label: String, val move: (dx: Float, dy: Float) -> Unit)
+
+class LayerPoints(
+    val points: List<app.absentmotion.model.Pt>,
+    val selected: Int,
+    val pivot: Boolean = false,
+    val lines: List<Pair<Int, Int>> = emptyList(),
+    val guide: List<app.absentmotion.model.Pt> = emptyList(),
+    val pick: (Int) -> Unit = {},
+    val tap: ((app.absentmotion.model.Pt) -> Unit)? = null,
+    val source: (app.absentmotion.model.Pt) -> app.absentmotion.model.Pt = { it },
+    val move: (Int, app.absentmotion.model.Pt) -> Unit,
+)
 
 class EditorState(
     val projectId: String,
@@ -95,6 +109,7 @@ class EditorState(
     var effectIndex by mutableIntStateOf(-1)
 
     var effectDetail by mutableStateOf<String?>(null)
+    var effectTargets by mutableStateOf<Set<Long>?>(null)
 
     var addOpen by mutableStateOf(false)
 
@@ -111,6 +126,7 @@ class EditorState(
     var keypad by mutableStateOf<KeypadRequest?>(null)
 
     var previewPanelOpen by mutableStateOf(false)
+    var transitionButtonDismissed by mutableStateOf(false)
     var pixelMode by mutableStateOf(false)
     var gridMode by mutableStateOf(false)
 
@@ -186,7 +202,23 @@ class EditorState(
 
     var pointAdjust by mutableStateOf<PointAdjust?>(null)
 
+    var layerPoints by mutableStateOf<LayerPoints?>(null)
+
     var turner by mutableStateOf<((drag: Offset, twist: Float) -> Unit)?>(null)
+
+    var cropAspect by mutableStateOf<Float?>(null)
+
+    var previewChange: ((Scene) -> Scene)? = null
+        set(value) {
+            if (field === value) return
+            field = value
+            engine.setScene(value?.invoke(scene) ?: scene)
+        }
+
+    private fun show(next: Scene, xml: Lazy<String>) {
+        val change = previewChange
+        if (change == null) engine.setScene(next, xml.value) else engine.setScene(change(next))
+    }
 
     var volumeOpen by mutableStateOf(false)
 
@@ -207,11 +239,40 @@ class EditorState(
     }
 
     fun endGesture() {
-        if (history.endGesture()) saver.commit(scene.toXml())
+        val pending = drafted != null
+        val ended = history.endGesture()
+        if (pending || ended) {
+            dropDraft()
+            val xml = scene.toXml()
+            if (pending) show(scene, lazyOf(xml))
+            if (ended) saver.commit(xml) else saver.draft(xml)
+        }
         saver.flush()
     }
 
+    private var drafted: Scene? = null
+    private val sendDraft = Choreographer.FrameCallback {
+        drafted?.let { next ->
+            drafted = null
+            val xml = lazy { next.toXml() }
+            show(next, xml)
+            saver.draft(xml.value)
+        }
+    }
+
+    private fun dropDraft() {
+        if (drafted == null) return
+        drafted = null
+        if (android.os.Looper.myLooper() != null) {
+            Choreographer.getInstance().removeFrameCallback(sendDraft)
+        }
+    }
+
     fun cancelGesture(key: Any) = history.cancelGesture(key)
+
+    val gestureOpen: Boolean get() = history.gesturing
+
+    fun amend(next: Scene) = history.amend(next.withMattesFollowing(scene))
 
     internal fun forgetEdit(after: Scene?): Boolean = history.forget(after)
 
@@ -225,7 +286,13 @@ class EditorState(
 
     private fun note(undone: Boolean, change: Pair<Scene, Scene>) {
         val what = describeEdit(change.first, change.second)
-        historyNotes.add(HistoryNote(++historyNoteCount, txt(if (undone) R.string.history_undid else R.string.history_redid, what)))
+        showNote(HistoryNote(++historyNoteCount, txt(if (undone) R.string.history_undid else R.string.history_redid, what)))
+    }
+
+    fun hint(@StringRes text: Int) = showNote(HistoryNote(++historyNoteCount, txt(text), faint = true))
+
+    private fun showNote(note: HistoryNote) {
+        historyNotes.add(note)
         while (historyNotes.size > MAX_NOTES) historyNotes.removeAt(0)
     }
 
@@ -249,8 +316,14 @@ class EditorState(
         canRedo = history.canRedo
         if (selectedId != null && next.layer(selectedId!!) == null) selectedId = null
         frame = keptFrame(previous, next, frame)
+        if (!save && android.os.Looper.myLooper() != null) {
+            if (drafted == null) Choreographer.getInstance().postFrameCallback(sendDraft)
+            drafted = next
+            return
+        }
+        dropDraft()
         val xml = next.toXml()
-        engine.setScene(next, xml)
+        show(next, lazyOf(xml))
         if (save) saver.commit(xml) else saver.draft(xml)
     }
 
@@ -268,16 +341,18 @@ internal class EditHistory(private val current: () -> Scene, private val show: (
     private val redoStack = ArrayDeque<Scene>()
     private var lastEditKey: Any? = null
     private var redoBeforeGesture: List<Scene> = emptyList()
+    private var droppedBeforeGesture: Scene? = null
 
     val canUndo: Boolean get() = undoStack.isNotEmpty()
     val canRedo: Boolean get() = redoStack.isNotEmpty()
+    val gesturing: Boolean get() = lastEditKey != null
 
     fun edit(key: Any?, next: Scene) {
         val scene = current()
         if (next == scene) return
         if (key == null || key != lastEditKey) {
             undoStack.addLast(scene)
-            if (undoStack.size > MAX_UNDO) undoStack.removeFirst()
+            droppedBeforeGesture = if (undoStack.size > MAX_UNDO) undoStack.removeFirst() else null
             redoBeforeGesture = redoStack.toList()
         }
         lastEditKey = key
@@ -291,9 +366,15 @@ internal class EditHistory(private val current: () -> Scene, private val show: (
         if (lastEditKey != key) return
         lastEditKey = null
         val previous = undoStack.removeLastOrNull() ?: return
+        droppedBeforeGesture?.let { undoStack.addFirst(it) }
+        droppedBeforeGesture = null
         redoStack.clear()
         redoStack.addAll(redoBeforeGesture)
         show(previous, false)
+    }
+
+    fun amend(next: Scene) {
+        if (next != current()) show(next, true)
     }
 
     fun forget(after: Scene?): Boolean {

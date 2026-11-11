@@ -19,6 +19,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Text
+import androidx.compose.material3.Icon
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.font.FontWeight
+import app.absentmotion.editor.canTrack
+import app.absentmotion.editor.startTracking
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
@@ -128,6 +134,20 @@ private fun PositionTab(state: EditorState, layer: Layer) {
         },
     ) {
         TrackpadCorners()
+        val canTrackMotion = layer.canTrack || state.scene.layers.any { it.canTrack }
+        if (canTrackMotion) {
+            Box(
+                Modifier.align(Alignment.BottomEnd).padding(end = 12.dp, bottom = 10.dp)
+                    .clip(RoundedCornerShape(6.dp)).background(Am.Card)
+                    .clickable { state.startTracking() }
+                    .padding(horizontal = 10.dp, vertical = 6.dp)
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(6.dp)) {
+                    Icon(PanelIcons.TrackMotion, null, Modifier.size(15.dp), tint = Am.Accent)
+                    Text(stringResource(R.string.draw_title_track_motion), color = Am.Accent, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                }
+            }
+        }
         Text(stringResource(if (depth) R.string.drag_to_move_along_z else R.string.drag_here_to_move_the_layer), Modifier.align(Alignment.Center), color = PanelCaption, fontSize = 15.sp, maxLines = 1, softWrap = false)
         Column(Modifier.align(Alignment.TopCenter).padding(top = 17.px)) {
             Row {

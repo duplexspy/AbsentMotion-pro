@@ -11,6 +11,7 @@ import androidx.compose.ui.unit.dp
 
 internal object PanelIcons {
     val Speed = icon("Speed", width = 1.7f, stroke = "M12 14L16 10M3.34 19A10 10 0 1 1 20.66 19")
+    val Pin = icon("Pin", width = 1.7f, stroke = "M12 2L12 10M8 6L16 6M9 10L15 10L13 22L11 22Z")
     val Animate = icon("Animate", width = 1.7f, stroke = "M9 12A6 6 0 1 0 21 12A6 6 0 1 0 9 12ZM2 8L6 8M3 12L6 12M2 16L6 16")
     val TrimLeft = icon("TrimLeft", width = 1.7f, stroke = "M12 2.5L12 21.5M13.5 7.5L19.5 7.5A1.5 1.5 0 0 1 21 9L21 15A1.5 1.5 0 0 1 19.5 16.5L13.5 16.5A1.5 1.5 0 0 1 12 15L12 9A1.5 1.5 0 0 1 13.5 7.5ZM3.5 7.5" +
             "L5.3 7.5M6.8 7.5L8.6 7.5M3.5 16.5L5.3 16.5M6.8 16.5L8.6 16.5")
@@ -26,6 +27,7 @@ internal object PanelIcons {
     val BorderShadow = icon("BorderShadow", width = 1.7f, stroke = "M6.5 3.5L13 3.5A3 3 0 0 1 16 6.5L16 13A3 3 0 0 1 13 16L6.5 16A3 3 0 0 1 3.5 13L3.5 6.5A3 3 0 0 1 6.5 3.5ZM20 8.5L20 16.5A3.5 3.5 0 0 1 16.5 20L8.5 20")
     val Blending = icon("Blending", width = 1.7f, stroke = "M8 9A7 7 0 1 0 22 9A7 7 0 1 0 8 9ZM2 15A7 7 0 1 0 16 15A7 7 0 1 0 2 15Z")
     val MoveTransform = icon("MoveTransform", width = 1.7f, stroke = "M5 3L5 19L21 19M5 19L11 13M2 6L5 3L8 6M18 16L21 19L18 22")
+    val TrackMotion = icon("TrackMotion", width = 1.8f, stroke = "M12 2L12 6M12 18L12 22M2 12L6 12M18 12L22 12M12 8A4 4 0 1 0 12 16A4 4 0 1 0 12 8Z")
     val EditShape = icon("EditShape", width = 1.7f, stroke = "M17 5A2 2 0 1 0 21 5A2 2 0 1 0 17 5ZM3 19A2 2 0 1 0 7 19A2 2 0 1 0 3 19ZM5 17A12 12 0 0 1 17 5")
     val Star = icon("Star", width = 1.7f, stroke = "M11.525 2.295A0.53 0.53 0 0 1 12.475 2.295L14.785 6.974A2.123 2.123 0 0 0 16.38 8.134L21.546 8.89A0.53 0.53 0 0 1 21.84 9.794L18.104 13.432" +
             "A2.123 2.123 0 0 0 17.493 15.31L18.375 20.45A0.53 0.53 0 0 1 17.604 21.01L12.986 18.582A2.122 2.122 0 0 0 11.013 18.582L6.396 21.01" +

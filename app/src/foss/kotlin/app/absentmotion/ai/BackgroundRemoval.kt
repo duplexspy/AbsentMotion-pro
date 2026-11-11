@@ -18,9 +18,6 @@ internal const val MODEL_ASSET = "absent_bg.abg"
 internal fun needsCopy(target: File, stamp: File, version: String): Boolean =
     !target.isFile || !stamp.isFile || stamp.readText() != version
 
-internal fun withMatte(argb: Int, matte: Byte): Int =
-    (argb and 0x00FFFFFF) or ((((argb ushr 24) * (matte.toInt() and 0xFF) + 127) / 255) shl 24)
-
 internal object BackgroundRemoval {
     val AVAILABLE: Boolean by lazy {
         runCatching { System.loadLibrary("amengine") }.isSuccess &&

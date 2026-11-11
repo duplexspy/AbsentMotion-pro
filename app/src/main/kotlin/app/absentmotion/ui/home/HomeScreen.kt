@@ -236,7 +236,9 @@ private fun TopBar(onMenu: () -> Unit, search: String?, templates: Boolean, onSe
             }
         }
         else HomeSearchField(search, templates, onSearch, Modifier.align(Alignment.Center).padding(horizontal = 56.dp).fillMaxWidth())
-        SearchButton(search, onSearch, Modifier.align(Alignment.CenterEnd))
+        Row(Modifier.align(Alignment.CenterEnd), verticalAlignment = Alignment.CenterVertically) {
+            SearchButton(search, onSearch)
+        }
     }
 }
 

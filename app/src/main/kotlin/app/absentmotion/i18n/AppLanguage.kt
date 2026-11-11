@@ -52,21 +52,39 @@ enum class AppLanguage(val tag: String, val nativeName: String) {
 private fun LocaleList.tags() = (0 until size()).map { get(it).toLanguageTag() }
 
 @RequiresApi(33)
-private fun Context.locales() = getSystemService(LocaleManager::class.java)
+private fun Context.locales(): LocaleManager? = runCatching { getSystemService(LocaleManager::class.java) }.getOrNull()
 
 private fun Context.chosen() = getSharedPreferences("language", Context.MODE_PRIVATE)
 
-fun phoneLanguage(context: Context): AppLanguage = AppLanguage.preselect(
-    (if (Build.VERSION.SDK_INT >= 33) context.locales().systemLocales else Resources.getSystem().configuration.locales).tags())
+fun phoneLanguage(context: Context): AppLanguage {
+    val tags = runCatching {
+        if (Build.VERSION.SDK_INT >= 33) {
+            context.locales()?.systemLocales?.tags() ?: Resources.getSystem().configuration.locales.tags()
+        } else {
+            Resources.getSystem().configuration.locales.tags()
+        }
+    }.getOrNull() ?: emptyList()
+    return AppLanguage.preselect(tags)
+}
 
-fun currentLanguage(context: Context): AppLanguage = AppLanguage.match(
-    if (Build.VERSION.SDK_INT >= 33) context.locales().applicationLocales.tags() else listOfNotNull(context.chosen().getString("tag", null)))
-    ?: phoneLanguage(context)
+fun currentLanguage(context: Context): AppLanguage {
+    val appLocales = runCatching {
+        if (Build.VERSION.SDK_INT >= 33) {
+            context.locales()?.applicationLocales?.tags()
+        } else {
+            listOfNotNull(context.chosen().getString("tag", null))
+        }
+    }.getOrNull()
+    return AppLanguage.match(appLocales ?: emptyList()) ?: phoneLanguage(context)
+}
 
 fun applyLanguage(context: Context, language: AppLanguage) {
     if (Build.VERSION.SDK_INT >= 33) {
-        context.locales().applicationLocales = LocaleList.forLanguageTags(language.tag)
-        return
+        val lm = context.locales()
+        if (lm != null) {
+            runCatching { lm.applicationLocales = LocaleList.forLanguageTags(language.tag) }
+            return
+        }
     }
     context.chosen().edit().putString("tag", language.tag).commit()
     var c: Context? = context

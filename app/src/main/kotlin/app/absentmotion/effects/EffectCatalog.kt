@@ -13,7 +13,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.io.InputStream
 
-val EffectCategories: List<Pair<String, String>> = EffectCatalog.Categories.toList() + ("ai" to "AI")
+val EffectCategories: List<Pair<String, String>> = EffectCatalog.Categories.toList()
 
 data class EffectCatalog(
     val definitions: List<EffectDefinition> = emptyList(),
@@ -22,7 +22,9 @@ data class EffectCatalog(
     val newest: Set<String> = emptySet(),
     val categoryNames: Map<String, String> = emptyMap(),
 ) {
-    fun find(id: String): EffectDefinition? = definitions.firstOrNull { it.id == id }
+    fun find(id: String): EffectDefinition? = definitions.firstOrNull {
+        it.id == id || it.key == id || it.id == "absent.$id" || (id.startsWith("absent.") && it.key == id.removePrefix("absent."))
+    }
 
     fun isNew(effect: EffectDefinition): Boolean = effect.since in newest
 
@@ -57,9 +59,12 @@ data class EffectCatalog(
     fun loadInto(load: (String) -> String, activeIds: Set<String> = emptySet()): EffectCatalog {
         val status = HashMap<String, String>()
         for (def in definitions) {
-            val isStock = def.category != "custom" && def.category != "packs" && def.group == null
-            if (isStock || def.id in activeIds) {
-                status[def.id] = load(def.runtimeXml()).substringBefore('\n')
+            if (activeIds.isNotEmpty()) {
+                if (def.id in activeIds) {
+                    status[def.id] = load(def.runtimeXml()).substringBefore('\n')
+                } else {
+                    status[def.id] = def.status
+                }
             } else {
                 status[def.id] = def.status
             }

@@ -783,10 +783,8 @@ private fun VideoPage(
                 Ends("${rates.first()}fps", "${rates.last()}fps")
             }
             Field(stringResource(R.string.export_interpolation), onHelp = onHelp) {
-                Segments(FrameInterpolation.entries.map { if (it == FrameInterpolation.Ai) app.absentmotion.Tier.choice(it, app.absentmotion.Feature.AiSmooth) else Choice(it) }, s.interpolation, { stringResource(it.label) }, onReason) { onChange(s.copy(interpolation = it)) }
-                Segments(levelChoices(s), s.interpolationLevel, { stringResource(it.label) }, onReason) { onChange(s.copy(interpolationLevel = it)) }
+                Segments(FrameInterpolation.entries.filter { it != FrameInterpolation.Ai }.map { Choice(it) }, s.interpolation, { stringResource(it.label) }, onReason) { onChange(s.copy(interpolation = it)) }
                 Hint(stringResource(R.string.export_interpolation_hint))
-                AiSmoothHint(scene, s, w, h)
             }
             Field(stringResource(R.string.export_motion_blur), onHelp = onHelp) {
                 Segments(MotionBlur.entries.map { Choice(it) }, s.motionBlur, { stringResource(it.label) }, onReason) { onChange(s.copy(motionBlur = it)) }
@@ -993,16 +991,11 @@ private fun OptionsPage(kind: ExportKind, scene: Scene, s: ExportSettings, onRea
     Chips(stringResource(R.string.export_frame_rate)) { rates.forEach { Chip("${it}fps", s.fps == it) { onChange(s.copy(fps = it)) } } }
     Field(stringResource(R.string.export_interpolation), onHelp = onHelp) {
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            FrameInterpolation.entries.forEach {
-                val reason = if (it == FrameInterpolation.Ai) app.absentmotion.Tier.reason(app.absentmotion.Feature.AiSmooth) else null
-                Chip(stringResource(it.label), s.interpolation == it) { reason?.let(onReason) ?: onChange(s.copy(interpolation = it)) }
+            FrameInterpolation.entries.filter { it != FrameInterpolation.Ai }.forEach {
+                Chip(stringResource(it.label), s.interpolation == it) { onChange(s.copy(interpolation = it)) }
             }
         }
-        FlowRow(Modifier.alpha(if (s.interpolation == FrameInterpolation.Off) Dimmed else 1f), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            levelChoices(s).forEach { c -> Chip(stringResource(c.value.label), s.interpolationLevel == c.value) { c.reason?.let(onReason) ?: onChange(s.copy(interpolationLevel = c.value)) } }
-        }
         Hint(stringResource(R.string.export_interpolation_hint))
-        AiSmoothHint(scene, s, w, h)
     }
     Field(stringResource(R.string.export_motion_blur), onHelp = onHelp) {
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {

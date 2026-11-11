@@ -739,6 +739,7 @@ object Am {
     val homeIsLight: Boolean get() = palette.HomeBg.luminance() > 0.5f
 
     val TopBar: Color get() = palette.TopBar
+    val CardHeader: Color get() = palette.FieldHi
     val PreviewBg: Color get() = palette.PreviewBg
     val TimelineBg: Color get() = palette.TimelineBg
     val Panel: Color get() = palette.Panel

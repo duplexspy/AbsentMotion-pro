@@ -56,3 +56,5 @@ Thumbs.db
 !app/src/main/assets/packs/*.effectspack
 /docs/THEMES.md
 /third_party/gn-src/
+tmp_401/
+extracted_screenshots/

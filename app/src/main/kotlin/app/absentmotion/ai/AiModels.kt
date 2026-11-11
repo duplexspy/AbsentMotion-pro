@@ -51,7 +51,30 @@ internal enum class AiModel(val folder: String, @StringRes val title: Int, val l
 
     fun dir(context: Context) = File(context.filesDir, "models/ai/$folder")
     fun file(context: Context, name: String) = File(dir(context), name)
-    fun installed(context: Context) = files.all { file(context, it.name).length() == it.bytes }
+    fun installed(context: Context): Boolean {
+        if (files.all { file(context, it.name).length() == it.bytes }) return true
+        val hasBundled = files.all { f ->
+            listOf("models/$folder/${f.name}", "models/${f.name}").any { p ->
+                try { context.assets.open(p).close(); true } catch (_: Throwable) { false }
+            }
+        }
+        if (hasBundled) {
+            dir(context).mkdirs()
+            for (f in files) {
+                val target = file(context, f.name)
+                if (target.length() != f.bytes) {
+                    val assetPath = listOf("models/$folder/${f.name}", "models/${f.name}").firstOrNull { p ->
+                        try { context.assets.open(p).close(); true } catch (_: Throwable) { false }
+                    } ?: continue
+                    context.assets.open(assetPath).use { input ->
+                        target.outputStream().use { output -> input.copyTo(output) }
+                    }
+                }
+            }
+            return files.all { file(context, it.name).length() == it.bytes }
+        }
+        return false
+    }
     fun onDisk(context: Context): Long = dir(context).listFiles()?.sumOf { it.length() } ?: 0L
 
     fun delete(context: Context) {
@@ -80,10 +103,19 @@ internal enum class AiModel(val folder: String, @StringRes val title: Int, val l
             val target = file(context, f.name)
             if (target.length() != f.bytes || target.inputStream().use(CaptionModel::sha256) != f.sha256) {
                 target.delete()
-                try {
-                    fetch(f, target, { ensureActive() }) { progress((before + it * f.bytes) / total) }
-                } catch (_: IOException) {
-                    error(AppText.get(R.string.ai_model_download_failed))
+                val assetPath = listOf("models/$folder/${f.name}", "models/${f.name}").firstOrNull { p ->
+                    try { context.assets.open(p).close(); true } catch (_: Throwable) { false }
+                }
+                if (assetPath != null) {
+                    context.assets.open(assetPath).use { input ->
+                        target.outputStream().use { output -> input.copyTo(output) }
+                    }
+                } else {
+                    try {
+                        fetch(f, target, { ensureActive() }) { progress((before + it * f.bytes) / total) }
+                    } catch (_: IOException) {
+                        error(AppText.get(R.string.ai_model_download_failed))
+                    }
                 }
             }
             before += f.bytes

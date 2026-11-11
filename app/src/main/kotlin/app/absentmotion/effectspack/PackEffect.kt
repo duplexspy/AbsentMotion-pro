@@ -54,7 +54,7 @@ data class PackEffect(
     val packId: String? = null,
 ) {
     val available: Boolean get() = status == "ok" && error == null
-    val key: String get() = id.removePrefix("gm.custom.")
+    val key: String get() = id.removePrefix("absent.custom.").removePrefix("am.custom.").removePrefix("gm.custom.")
 
     fun toEffectDefinition(thumbPath: String? = null, packName: String? = null, author: String? = null): EffectDefinition = EffectDefinition(
         id = id,

@@ -51,12 +51,12 @@ class ProjectPackEffectTest {
     fun sceneRoundTripsUnknownPackEffectWithoutError() {
         val xml = """
             <scene width="1080" height="1920" fps="30" duration="5000">
-                <layer id="1" name="Video" type="shape" startTime="0" endTime="5000">
+                <shape id="1" name="Video" startTime="0" endTime="5000">
                     <effect id="gm.custom.uninstalled_pack_effect" hidden="false">
                         <property name="intensity" type="float" value="0.8"/>
                         <property name="tint" type="color" value="#ff112233"/>
                     </effect>
-                </layer>
+                </shape>
             </scene>
         """.trimIndent()
 

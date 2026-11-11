@@ -1,0 +1,45 @@
+{
+ "id": "groupsharpness",
+ "name": "Group Sharpness & Quality",
+ "category": "color",
+ "since": "4.4.1",
+ "description": "Non-destructive unsharp and edge-preserving detail enhancer for groups, precompositions, text, and vector layers.",
+ "params": [
+  {
+   "id": "intensity",
+   "label": "Intensity",
+   "type": "float",
+   "default": 1.0,
+   "min": 0.0,
+   "max": 2.5,
+   "step": 0.05
+  },
+  {
+   "id": "radius",
+   "label": "Radius",
+   "type": "float",
+   "default": 1.5,
+   "min": 0.5,
+   "max": 6.0,
+   "step": 0.1
+  },
+  {
+   "id": "edge_preserve",
+   "label": "Edge Preservation",
+   "type": "float",
+   "default": 0.8,
+   "min": 0.0,
+   "max": 1.0,
+   "step": 0.02
+  },
+  {
+   "id": "detail_preserve",
+   "label": "Detail Preservation",
+   "type": "float",
+   "default": 0.9,
+   "min": 0.0,
+   "max": 1.0,
+   "step": 0.02
+  }
+ ]
+}

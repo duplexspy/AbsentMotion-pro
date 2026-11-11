@@ -43,6 +43,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import app.absentmotion.editor.MultiSelect
+import app.absentmotion.editor.canTrack
 import app.absentmotion.editor.keepCopy
 import app.absentmotion.model.replaceMedia
 import app.absentmotion.audio.soundUri
@@ -218,10 +219,11 @@ internal fun LayerMenu(state: EditorState, onDismiss: () -> Unit) {
                 state.extractAudio()
                 onDismiss()
             }
-            if (!MultiSelect.active) MenuRow(stringResource(R.string.draw_title_track_motion)) {
-                onDismiss()
-                state.startTracking()
-            }
+        }
+        val hasTrackVideo = video != null || state.scene.layers.any { it.canTrack }
+        if (hasTrackVideo && !MultiSelect.active) MenuRow(stringResource(R.string.draw_title_track_motion)) {
+            onDismiss()
+            state.startTracking()
         }
         if (state.selected?.soundUri != null && !MultiSelect.active) MenuRow(stringResource(R.string.menu_mark_beats), enabled = !marking, busy = marking) {
             marking = true

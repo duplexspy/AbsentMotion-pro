@@ -22,13 +22,20 @@ internal fun trackStartPoints(width: Int, height: Int, count: Int): List<Pt> =
 val Layer.canTrack: Boolean get() = mediaFill?.video == true
 
 fun EditorState.startTracking() {
-    val layer = selected?.takeIf { it.canTrack } ?: return
-    val media = scene.media(layer.mediaFill!!.uri)?.takeIf { it.width > 0 && it.height > 0 } ?: return
-    if (!layer.activeAt(timeMs)) frame = scene.firstShownFrame(layer.startTime)
-    selectedId = layer.id
+    val currentSelected = selected
+    val videoLayer = if (currentSelected?.canTrack == true) currentSelected else scene.layers.firstOrNull { it.canTrack } ?: return
+    val uri = videoLayer.mediaFill?.uri ?: return
+    val media = scene.media(uri)?.takeIf { it.width > 0 && it.height > 0 } ?: return
+    if (!videoLayer.activeAt(timeMs)) frame = scene.firstShownFrame(videoLayer.startTime)
+    selectedId = videoLayer.id
     playing = false
     panel = EditorPanel.Tools
-    drawing = TrackMode(layer.id).apply { points += trackStartPoints(media.width, media.height, 1) }
+    drawing = TrackMode(videoLayer.id).apply {
+        points += trackStartPoints(media.width, media.height, 1)
+        if (currentSelected != null && currentSelected.id != videoLayer.id) {
+            target = currentSelected.id
+        }
+    }
 }
 
 fun EditorState.setTrackPointCount(mode: TrackMode, count: Int) {

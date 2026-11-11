@@ -71,6 +71,10 @@ internal fun EditorState.askNumber(label: String, value: Float, onDone: (Float) 
     keypad = KeypadRequest(listOf(KeypadField(label, value)), 0) { onDone(it[0]) }
 }
 
+internal fun EditorState.askNumber(label: String, value: Float, unit: String, min: Float, max: Float, onDone: (Float) -> Unit) {
+    keypad = KeypadRequest(listOf(KeypadField(label, value, unit, min, max)), 0) { onDone(it[0]) }
+}
+
 @Composable
 internal fun ThinSwitch(
     on: Boolean, modifier: Modifier = Modifier, enabled: Boolean = true,

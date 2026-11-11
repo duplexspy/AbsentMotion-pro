@@ -53,7 +53,10 @@ import java.util.concurrent.atomic.AtomicReference
 
 object EngineDebug {
     @Volatile var failStart: String? = null
+    @Volatile var failCheck: String? = null
 }
+
+data class RenderedFrame(val serial: Long = 0L, val timeMs: Int = 0)
 
 class EngineThread(private val background: Int, context: Context? = null) {
     private val appContext: Context? = context?.applicationContext
@@ -112,6 +115,9 @@ class EngineThread(private val background: Int, context: Context? = null) {
     @Volatile private var mediaScene: Scene? = null
     private val pictureRevision = MutableStateFlow(0L)
     val mediaRevision = pictureRevision.asStateFlow()
+    private val _rendered = MutableStateFlow(RenderedFrame())
+    val rendered = _rendered.asStateFlow()
+    val renders: Long get() = _rendered.value.serial
 
     private var engine: NativeEngine? = null
     private var target = 0L
@@ -146,9 +152,46 @@ class EngineThread(private val background: Int, context: Context? = null) {
             val catalog = PackCatalog.mergeInto(EffectCatalog.read(ctx), ctx)
             val activeIds = scene?.let { xml -> Regex("""id="([^"]+)"""").findAll(xml).map { it.groupValues[1] }.toSet() }.orEmpty()
             effectCatalog.value = withContext(dispatcher) {
-                if (closed) catalog else catalog.loadInto({ runCatching { engine().loadEffect(it) }.getOrElse { e -> "shader error: ${e.message}" } }, activeIds)
+                if (closed) catalog else {
+                    loadedEffectIds.clear()
+                    scene?.let { ensureEffectsLoadedForScene(it) }
+                    catalog.loadInto({ runCatching { engine().loadEffect(it) }.getOrElse { e -> "shader error: ${e.message}" } }, activeIds)
+                }
             }
             withContext(dispatcher) { renderNow() }
+        }
+    }
+
+    private val loadedEffectIds = mutableSetOf<String>()
+
+    fun ensureEffectsLoadedForScene(xml: String) {
+        val effectRegex = Regex("""<effect\s+[^>]*\bid="([^"]+)"""")
+        val ids = effectRegex.findAll(xml).map { it.groupValues[1] }.toSet()
+        if (ids.isEmpty()) return
+        val catalog = effectCatalog.value
+        if (catalog.definitions.isEmpty()) {
+            val ctx = appContext
+            if (ctx != null) {
+                mediaScope.launch(dispatcher) {
+                    effectJob?.join()
+                    ensureEffectsLoadedForScene(xml)
+                    renderNow()
+                }
+            }
+            return
+        }
+        for (id in ids) {
+            val key = id.removePrefix("absent.")
+            if (id !in loadedEffectIds && key !in loadedEffectIds) {
+                val def = catalog.find(id)
+                if (def != null) {
+                    runCatching { engine().loadEffect(def.runtimeXml()) }
+                    loadedEffectIds.add(id)
+                    loadedEffectIds.add(key)
+                    loadedEffectIds.add(def.id)
+                    loadedEffectIds.add(def.key)
+                }
+            }
         }
     }
 
@@ -162,7 +205,10 @@ class EngineThread(private val background: Int, context: Context? = null) {
         val catalog = PackCatalog.mergeInto(EffectCatalog.read(ctx), ctx)
         val activeIds = scene?.let { xml -> Regex("""id="([^"]+)"""").findAll(xml).map { it.groupValues[1] }.toSet() }.orEmpty()
         effectCatalog.value = withContext(dispatcher) {
-            if (closed) catalog else catalog.loadInto({ runCatching { engine().loadEffect(it) }.getOrElse { e -> "shader error: ${e.message}" } }, activeIds)
+            if (closed) catalog else {
+                scene?.let { ensureEffectsLoadedForScene(it) }
+                catalog.loadInto({ runCatching { engine().loadEffect(it) }.getOrElse { e -> "shader error: ${e.message}" } }, activeIds)
+            }
         }
         withContext(dispatcher) { renderNow() }
     } }
@@ -179,7 +225,12 @@ class EngineThread(private val background: Int, context: Context? = null) {
         }
         return engine ?: startEngine().also { next ->
             engine = next
-            scene?.let { next.setScene(fonts?.prepareText(it, textTime) ?: it) }
+            loadedEffectIds.clear()
+            scene?.let {
+                val prepared = fonts?.prepareText(it, textTime) ?: it
+                ensureEffectsLoadedForScene(prepared)
+                next.setScene(prepared)
+            }
             effects.value.loadInto(next::loadEffect)
             if (lost) {
                 lost = false
@@ -342,11 +393,15 @@ class EngineThread(private val background: Int, context: Context? = null) {
         engine().setPicture(uri, buffer, layerId, opaque).also { pictureRevision.value++; renderNow() }
     }
 
-    fun setView(view: PreviewView) {
+    var viewSerial = 0L
+        private set
+
+    fun setView(view: PreviewView): Long {
         requestedView = view
         mediaScene?.let { videos?.update(it, view.timeMs, playing) }
         pendingView.set(view)
         requestRender()
+        return ++viewSerial
     }
 
     private fun requestRender() {
@@ -373,7 +428,9 @@ class EngineThread(private val background: Int, context: Context? = null) {
     private var textTime = Int.MIN_VALUE
 
     private fun setEngineScene(xml: String, timeMs: Int = view?.timeMs ?: 0) {
-        engine().setScene(fonts?.prepareText(xml, timeMs) ?: xml)
+        val prepared = fonts?.prepareText(xml, timeMs) ?: xml
+        ensureEffectsLoadedForScene(prepared)
+        engine().setScene(prepared)
         rememberScene(xml, timeMs)
     }
 
@@ -405,6 +462,7 @@ class EngineThread(private val background: Int, context: Context? = null) {
                     Log.e("AMEngine", "preview rendering failed")
                 }
                 if (RenderStats.recording) RenderStats.add((System.nanoTime() - started) / 1e6, v.timeMs)
+                _rendered.value = RenderedFrame(viewSerial, v.timeMs)
             }
         } catch (e: Exception) {
             if (!closed) Log.e("AMEngine", "preview rendering failed", e)
@@ -456,6 +514,22 @@ class EngineThread(private val background: Int, context: Context? = null) {
         engine().still(0.0, width, height)
     }
 
+    suspend fun capturePreviewFrame(
+        scene: Scene,
+        timeMs: Int,
+        width: Int,
+        height: Int,
+        accurateBlur: Boolean,
+        active: () -> Boolean
+    ): ByteArray? = captureLock.withLock {
+        if (!active()) return null
+        withContext(dispatcher) {
+            if (!active() || closed) return@withContext null
+            applyPending()
+            engine().still(timeMs.toDouble(), width, height)
+        }
+    }
+
     suspend fun stillPng(xml: String, timeMs: Int, width: Int, height: Int, file: File): Boolean = captureLock.withLock {
         awaitMedia()
         fontJob?.join()
@@ -502,6 +576,9 @@ class EngineThread(private val background: Int, context: Context? = null) {
     inner class ExportSession internal constructor(private val document: Scene, private val smoothing: Smoothing, private val fps: Int) {
         suspend fun still(timeMs: Int, width: Int, height: Int): ByteArray? =
             atFrame(document, timeMs, smoothing, fps) { engine().still(timeMs.toDouble(), width, height) }
+
+        suspend fun previewStill(timeMs: Int, width: Int, height: Int, accurateBlur: Boolean = false): ByteArray? =
+            still(timeMs, width, height)
 
         suspend fun attach(surface: Surface): Long = withContext(dispatcher) { engine().attach(surface, forEncoder = true) }
 

@@ -212,7 +212,7 @@ object PackStore {
         val effectsDir = File(targetPackDir, "effects").apply { mkdirs() }
         val thumbsDir = File(targetPackDir, "thumbs").apply { mkdirs() }
 
-        val baseName = effect.id.removePrefix("gm.custom.").replace(Regex("[^a-zA-Z0-9_]"), "_")
+        val baseName = effect.id.removePrefix("absent.custom.").removePrefix("am.custom.").removePrefix("gm.custom.").replace(Regex("[^a-zA-Z0-9_]"), "_")
         val xmlFile = File(effectsDir, "$baseName.xml")
         xmlFile.writeText(xmlString)
 

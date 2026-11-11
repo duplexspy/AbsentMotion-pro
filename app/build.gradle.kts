@@ -2,6 +2,7 @@ import java.util.Properties
 
 plugins {
     id("com.android.application")
+    id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.compose")
 }
 
@@ -54,6 +55,10 @@ android {
         checkReleaseBuilds = false
     }
 
+    androidResources {
+        noCompress += listOf("bin", "param")
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
@@ -66,13 +71,6 @@ android {
 
     flavorDimensions += "distribution"
     productFlavors {
-        create("play") { dimension = "distribution" }
-        create("foss") { dimension = "distribution" }
-        create("compat") {
-            dimension = "distribution"
-            minSdk = 28
-            buildConfigField("boolean", "COMPATIBLE", "true")
-        }
         create("pro") {
             dimension = "distribution"
             applicationId = "app.absentmotion.pro"
@@ -82,9 +80,9 @@ android {
     }
 
     sourceSets {
-        named("compat") {
-            kotlin.directories += "src/foss/kotlin"
-            assets.directories += "src/foss/assets"
+        named("test") {
+            kotlin.directories += "src/test/kotlin"
+            java.directories += "src/test/kotlin"
         }
         named("pro") {
             kotlin.directories += "src/foss/kotlin"
@@ -92,8 +90,10 @@ android {
             manifest.srcFile("src/compat/AndroidManifest.xml")
             res.directories += "src/compat/res"
         }
-        named("testCompat") { kotlin.directories += "src/testFoss/kotlin" }
-        named("testPro") { kotlin.directories += "src/testFoss/kotlin" }
+        named("testPro") {
+            kotlin.directories += "src/testFoss/kotlin"
+            java.directories += "src/testFoss/kotlin"
+        }
     }
 }
 
@@ -105,6 +105,17 @@ tasks.matching { it.name.contains("AarMetadata") }.configureEach {
     enabled = false
 }
 
+tasks.register<Copy>("copyProDebugApk") {
+    from(layout.buildDirectory.dir("outputs/apk/pro/debug"))
+    into(layout.buildDirectory.dir("outputs/apk/debug"))
+    include("*.apk")
+    rename { "app-debug.apk" }
+}
+
+tasks.matching { it.name == "assembleDebug" }.configureEach {
+    finalizedBy("copyProDebugApk")
+}
+
 dependencies {
     implementation(platform("androidx.compose:compose-bom:2026.09.00"))
     implementation("androidx.compose.ui:ui")
@@ -113,7 +124,6 @@ dependencies {
     implementation("androidx.activity:activity-compose:1.13.0")
     implementation("androidx.camera:camera-camera2:1.6.2")
     implementation("androidx.camera:camera-view:1.6.2")
-    "playImplementation"("com.google.android.gms:play-services-mlkit-subject-segmentation:16.0.0-beta1")
     testImplementation("junit:junit:4.13.2")
     testImplementation("net.sf.kxml:kxml2:2.3.0")
     testImplementation("org.json:json:20260814")

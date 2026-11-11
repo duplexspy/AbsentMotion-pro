@@ -193,7 +193,7 @@ class ProjectStore(private val root: File) {
     }
 }
 
-private fun XmlNode.keptUris(): Set<String> = mediaUris() + buildSet {
+internal fun XmlNode.keptUris(): Set<String> = mediaUris() + buildSet {
     fun walk(n: XmlNode) {
         if (n.name == "ai") listOf("original", "result").forEach { key -> n[key]?.let { add(it) } }
         n.children.forEach(::walk)

@@ -172,8 +172,12 @@ private class Form(saved: NewProjectChoice, val titles: List<String>, val names:
     fun scene(): Scene {
         val (w, h) = size
         val title = name.trim().ifEmpty { names.of(element, titles) }
-        val scene = Scene.create(title, w, h, fps, if (element) 0 else background)
-        return if (element) Scene(scene.node.with("type", "element")) else scene
+        val baseScene = Scene.create(title, w, h, fps, if (element) 0 else background)
+        return if (element) {
+            Scene(baseScene.node.with("type", "element"))
+        } else {
+            baseScene
+        }
     }
 }
 
@@ -205,7 +209,7 @@ fun NewProjectSheet(
     var camera by remember { mutableStateOf(false) }
     var creating by remember { mutableStateOf(false) }
     Box(Modifier.fillMaxSize()) {
-        Box(Modifier.fillMaxSize().presenceScrim(Color.Black.copy(alpha = 0.7f)).pointerInput(Unit) { detectTapGestures { } })
+        Box(Modifier.fillMaxSize().presenceScrim(Color.Black.copy(alpha = 0.7f)).pointerInput(Unit) { detectTapGestures { onClose() } })
         BoxWithConstraints(Modifier.align(Alignment.BottomCenter).widthIn(max = 480.dp).presence(slide = 1f, fade = false)) {
             val density = LocalDensity.current
             CompositionLocalProvider(LocalDensity provides Density(density.density * minOf(1f, maxWidth / SheetWidth), density.fontScale)) {
@@ -267,7 +271,7 @@ private fun SheetBody(form: Form, onClose: () -> Unit, onCamera: () -> Unit, onC
             Spacer(Modifier.height(30.dp))
         }
         TypeToggle(form)
-        Spacer(Modifier.height(35.dp))
+        Spacer(Modifier.height(24.dp))
         NameField(form)
         Spacer(Modifier.height(10.dp))
         AspectRow(form)
@@ -308,6 +312,8 @@ private fun TypeToggle(form: Form) {
         Segment(stringResource(R.string.newproject_segment_asset), form.element, Modifier.weight(1f)) { form.switchType(true) }
     }
 }
+
+
 
 @Composable
 private fun Segment(text: String, selected: Boolean, modifier: Modifier, onClick: () -> Unit) {

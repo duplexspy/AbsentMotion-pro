@@ -117,7 +117,7 @@ object PackParser {
                             val label = parser.getAttributeValue(null, "label") ?: value
                             currentSelectorChoices.add(value to label)
                         }
-                        "shader", "glsl" -> {
+                        "shader", "glsl", "sksl" -> {
                             rawGlsl = parser.nextText() ?: ""
                         }
                         else -> {

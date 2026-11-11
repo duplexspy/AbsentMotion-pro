@@ -262,7 +262,8 @@ fun LanguageDialog(onClose: () -> Unit) {
 
 @Composable
 private fun LanguageList(top: AppLanguage, chosen: AppLanguage, modifier: Modifier, onPick: (AppLanguage) -> Unit) {
-    val ui = LocalConfiguration.current.locales[0] ?: Locale.ENGLISH
+    val locales = LocalConfiguration.current.locales
+    val ui = if (!locales.isEmpty) (runCatching { locales[0] }.getOrNull() ?: Locale.getDefault()) else Locale.getDefault()
     val order = remember(top) { AppLanguage.suggestedOrder(top) }
     LazyColumn(
         modifier.fillMaxWidth().selectableGroup(),
@@ -283,7 +284,11 @@ private fun LanguageList(top: AppLanguage, chosen: AppLanguage, modifier: Modifi
 @Composable
 private fun LanguageRow(language: AppLanguage, chosen: Boolean, ui: Locale, onClick: () -> Unit) {
     val shape = RoundedCornerShape(12.dp)
-    val local = remember(language, ui) { Locale.forLanguageTag(language.tag).getDisplayName(ui).replaceFirstChar { it.titlecase(ui) } }
+    val local = remember(language, ui) {
+        runCatching {
+            Locale.forLanguageTag(language.tag).getDisplayName(ui).replaceFirstChar { it.titlecase(ui) }
+        }.getOrDefault(language.nativeName)
+    }
     Row(
         Modifier.fillMaxWidth().height(62.dp).clip(shape).background(Am.Card)
             .border(2.dp, if (chosen) Am.Navy else Color.Transparent, shape)

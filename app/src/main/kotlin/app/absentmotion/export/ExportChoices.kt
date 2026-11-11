@@ -32,7 +32,16 @@ private fun ExportSettings.fitAudio(): ExportSettings =
 
 private fun unsupported(support: Support): UiText? = (support as? Support.Unsupported)?.takeIf { !it.sound }?.reason
 
-fun containerChoices(s: ExportSettings, check: (ExportSettings) -> Support): List<Choice<Container>> = Container.entries.map { Choice(it, null) }
+fun containerChoices(s: ExportSettings, check: (ExportSettings) -> Support): List<Choice<Container>> = Container.entries.map { c ->
+    val codecs = videoCodecsFor(c)
+    val results = codecs.flatMap { codec -> audioCodecsFor(c).map { check(s.copy(container = c, codec = codec, audio = s.audio.copy(codec = it))) } }
+    val noSound = results.firstNotNullOfOrNull { (it as? Support.Unsupported)?.takeIf { u -> u.sound }?.reason }
+    Choice(c, when {
+        results.any { it !is Support.Unsupported } -> null
+        noSound != null -> noSound
+        else -> txt(R.string.export_reason_container_codecs, c.label, listed(codecs.map { it.shortName }, R.string.export_list_or), sizeLabel(s.shortSide))
+    })
+}
 
 fun withContainer(s: ExportSettings, c: Container, check: (ExportSettings) -> Support): ExportSettings {
     val sounds = (listOf(s.audio.codec) + audioCodecsFor(c)).distinct().filter { it in audioCodecsFor(c) }
@@ -42,13 +51,19 @@ fun withContainer(s: ExportSettings, c: Container, check: (ExportSettings) -> Su
 }
 
 fun codecChoices(s: ExportSettings, check: (ExportSettings) -> Support): List<Choice<Codec>> =
-    videoCodecsFor(s.container).map { Choice(it, null) }
+    videoCodecsFor(s.container).map { Choice(it, unsupported(check(s.copy(codec = it)))) }
 
 fun resolutionChoices(s: ExportSettings, check: (ExportSettings) -> Support): List<Choice<Resolution>> =
-    VideoResolutions.map { Choice(it, null) }
+    VideoResolutions.map { Choice(it, unsupported(check(s.copy(shortSide = it.shortSide)))) }
 
-fun audioCodecChoices(container: Container, hasEncoder: (String) -> Boolean): List<Choice<AudioCodec>> =
-    audioCodecsFor(container).map { Choice(it, null) }
+fun audioCodecChoices(container: Container, hasEncoder: (String) -> Boolean): List<Choice<AudioCodec>> = AudioCodec.entries.map { a ->
+    Choice(a, when {
+        a !in audioCodecsFor(container) ->
+            txt(R.string.export_reason_audio_container, container.label, a.label, listed(Container.entries.filter { a in audioCodecsFor(it) }.map { it.label }, R.string.export_list_and))
+        !hasEncoder(a.mime) -> txt(R.string.export_support_no_encoder, a.label)
+        else -> null
+    })
+}
 
 fun sampleRateChoices(only48: Any?): List<Choice<Int>> =
     AudioSampleRates.map { Choice(it, if (only48 != null && it != 48000) txt(R.string.export_reason_only_48k, only48) else null) }
@@ -56,8 +71,15 @@ fun sampleRateChoices(only48: Any?): List<Choice<Int>> =
 fun bitrateChoices(format: AudioFormat?): List<Choice<Int>> =
     AudioBitratesKbps.map { Choice(it, if (format?.lossless == true) txt(R.string.export_reason_lossless, txt(format.label)) else null) }
 
-fun audioFormatChoices(hasEncoder: (String) -> Boolean): List<Choice<AudioFormat>> =
-    AudioFormat.entries.map { Choice(it, null) }
+fun audioFormatChoices(hasEncoder: (String) -> Boolean): List<Choice<AudioFormat>> = AudioFormat.entries.map { f ->
+    val mime = when (f) {
+        AudioFormat.Flac -> "audio/flac"
+        AudioFormat.M4a -> AudioCodec.Aac.mime
+        AudioFormat.Ogg -> AudioCodec.Opus.mime
+        else -> null
+    }
+    Choice(f, if (mime != null && !hasEncoder(mime)) txt(R.string.export_support_no_encoder, txt(f.label)) else null)
+}
 
 fun codecWarning(s: ExportSettings, support: Support): UiText? = when (support) {
     Support.Supported -> null
@@ -86,6 +108,7 @@ fun suggestionLabel(from: ExportSettings, to: ExportSettings): UiText = listOfNo
 
 fun exportBlock(storage: StorageStatus, support: Support): UiText? = when {
     storage is StorageStatus.NotEnough -> txt(R.string.export_block_storage)
+    support is Support.Unsupported -> txt(R.string.export_block_unsupported)
     else -> null
 }
 

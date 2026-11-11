@@ -24,6 +24,12 @@ import app.absentmotion.editor.skipForward
 import app.absentmotion.ui.theme.Am
 import app.absentmotion.ui.theme.Presence
 
+import androidx.compose.foundation.clickable
+import androidx.compose.material3.Text
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
+import app.absentmotion.library.PreviewQuality
+
 @Composable
 fun PlayBar(state: EditorState, modifier: Modifier = Modifier) {
     var menuOpen by remember { mutableStateOf(false) }
@@ -40,6 +46,22 @@ fun PlayBar(state: EditorState, modifier: Modifier = Modifier) {
         ) { state.playing = !state.playing }
         BarButton(ChromeIcons.SkipForward, stringResource(R.string.play_skip_forward), cell) { state.skipForward() }
         BarButton(ChromeIcons.CopyPaste, stringResource(R.string.play_copy_paste), cell) { menuOpen = true }
+        val quality = settings.previewQuality
+        Box(
+            cell.clickable {
+                val nextOrdinal = (quality.ordinal + 1) % PreviewQuality.entries.size
+                settings.previewQuality = PreviewQuality.entries[nextOrdinal]
+            },
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                quality.labelText,
+                color = if (quality == PreviewQuality.Full) Am.OnDark else Am.Accent,
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Bold,
+                maxLines = 1
+            )
+        }
         Box(cell) {
             BarButton(
                 if (state.previewPanelOpen) ChromeIcons.PreviewModeOpen else ChromeIcons.PreviewMode, stringResource(R.string.play_preview_mode), Modifier.fillMaxSize(),

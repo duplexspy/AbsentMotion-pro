@@ -54,7 +54,8 @@ object EffectThumbnailManager {
         try {
             val assetManager = context.assets
             val list = assetManager.list("effects/thumb") ?: return
-            for (filename in list) {
+            // Throttled preload: only preload top essential thumbnails to prevent launch lag
+            for (filename in list.take(12)) {
                 if (!filename.endsWith(".webp") && !filename.endsWith(".png")) continue
                 val key = "thumb/$filename"
                 if (atlas.containsKey(key)) continue

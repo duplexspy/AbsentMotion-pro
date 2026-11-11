@@ -25,6 +25,9 @@ class AppSettings(private val context: Context) {
     private var loopingPlayState by mutableStateOf(prefs.getBoolean("loopingPlay", false))
     private var xmlUploadState by mutableStateOf(prefs.getBoolean("xmlUpload", false))
     private var vibrationState by mutableStateOf(prefs.getBoolean("trimLimitVibration", true))
+    private var tutorialAskState by mutableIntStateOf(prefs.getInt("tutorialAsk", 0))
+    private var tutorialProjectState by mutableStateOf(prefs.getString("tutorialProject", null))
+    private var tutorialStepState by mutableStateOf(prefs.getString("tutorialStep", null))
 
     private var themeState by mutableStateOf(prefs.getString("theme", Themes.DEFAULT)!!)
     private var customThemeState by mutableStateOf(Themes.custom(context)?.let { it.name ?: "" })
@@ -72,6 +75,18 @@ class AppSettings(private val context: Context) {
     var vibration: Boolean
         get() = vibrationState
         set(value) { vibrationState = value; prefs.edit().putBoolean("trimLimitVibration", value).apply() }
+
+    var tutorialAsk: Int
+        get() = tutorialAskState
+        set(value) { tutorialAskState = value; prefs.edit().putInt("tutorialAsk", value).apply() }
+
+    var tutorialProject: String?
+        get() = tutorialProjectState
+        set(value) { tutorialProjectState = value; prefs.edit().putString("tutorialProject", value).apply() }
+
+    var tutorialStep: String?
+        get() = tutorialStepState
+        set(value) { tutorialStepState = value; prefs.edit().putString("tutorialStep", value).apply() }
 
     private var androidEmojiState by mutableStateOf(prefs.getBoolean(app.absentmotion.fonts.FontLibrary.ANDROID_EMOJI, false))
 
@@ -249,8 +264,12 @@ class AppSettings(private val context: Context) {
     }
 }
 
-enum class PreviewQuality(val divisor: Int, @StringRes val label: Int) {
-    Full(1, R.string.settings_preview_full), Half(2, R.string.settings_preview_half), Quarter(4, R.string.settings_preview_quarter);
+enum class PreviewQuality(val divisor: Int, val scale: Float, @StringRes val label: Int, val labelText: String) {
+    Full(1, 1.00f, R.string.settings_preview_100, "100%"),
+    ThreeQuarter(1, 0.75f, R.string.settings_preview_75, "75%"),
+    Half(2, 0.50f, R.string.settings_preview_50, "50%"),
+    Quarter(4, 0.25f, R.string.settings_preview_25, "25%"),
+    Tenth(10, 0.10f, R.string.settings_preview_10, "10%");
 
     companion object {
         fun of(stored: String?, draft: Boolean): PreviewQuality = entries.firstOrNull { it.name == stored } ?: if (draft) Half else Full

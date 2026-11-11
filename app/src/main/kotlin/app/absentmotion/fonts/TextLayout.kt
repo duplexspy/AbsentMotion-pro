@@ -57,10 +57,19 @@ private fun FontLibrary.prepareText(scene: XmlNode, fps: Int, timeMs: Int): XmlN
             XmlNode("_line", mapOf("baseline" to "$base", "rtl" to "${layout.getParagraphDirection(index) < 0}",
                 "wordSpacing" to "$spacing"), text = line)
         }
-        node.with("_fontPath", renderFile(layer.font)?.takeUnless { it.path.startsWith("/system/") && systemFamily(layer.font) != null }?.absolutePath).with("_fontFamily", systemFamily(layer.font) ?: name.family)
+        val updatedNode = node.with("_fontPath", renderFile(layer.font)?.takeUnless { it.path.startsWith("/system/") && systemFamily(layer.font) != null }?.absolutePath).with("_fontFamily", systemFamily(layer.font) ?: name.family)
             .with("_fontIndex", "${fontIndex(layer.font)}")
             .with("_letterSpacing", "${paint.letterSpacing}").with("_lineSpacing", "${layer.textSpacing("linespacing", 1f)}")
             .with("_fontWeight", "${name.weight}").with("_fontItalic", "${name.italic}").with("_emoji", emoji).with("_emojiFlags", flags)
             .withChild("_layout", XmlNode("_layout", mapOf("height" to "$layoutHeight"), lines))
+
+        if (updatedNode.attrs["pro.text3d.depth"]?.toFloatOrNull()?.let { it > 0f } == true &&
+            updatedNode.children.none { it.name == "effect" && (it["id"] == "absent.rasterextrude" || it["id"] == "rasterextrude") }) {
+            val (c, a) = app.absentmotion.pro.text3d.Text3dRenderer.parseConfig(updatedNode.attrs)
+            val updatedLayer = app.absentmotion.pro.text3d.Text3dRenderer.applyToLayer(raw.copy(node = updatedNode), c, a)
+            updatedLayer.node
+        } else {
+            updatedNode
+        }
     }
 }

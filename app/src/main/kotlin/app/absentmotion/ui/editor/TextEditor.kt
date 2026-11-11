@@ -14,6 +14,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Brush
@@ -38,7 +39,9 @@ import app.absentmotion.ui.theme.Am
 import app.absentmotion.ui.theme.Swap
 import app.absentmotion.ui.theme.enterFade
 import kotlin.math.roundToInt
-import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import app.absentmotion.pro.text3d.Text3dRenderer
+import app.absentmotion.pro.text3d.Text3dControlsPanel
 import app.absentmotion.R
 
 private val TextControl get() = Am.Button
@@ -91,6 +94,9 @@ internal fun TextEditor(state: EditorState) {
                     Box(Modifier.padding(1.5.dp).width(38.dp).fillMaxHeight().background(TextControl).clickable { keyboard?.hide(); popup = if (popup == "color") "" else "color" }, contentAlignment = Alignment.Center) {
                         ColourSwatch(layer.fillColor, 24.dp)
                     }
+                    Box(Modifier.padding(1.5.dp).width(44.dp).fillMaxHeight().background(TextControl, RoundedCornerShape(2.dp)).clickable { keyboard?.hide(); popup = if (popup == "3d") "" else "3d" }, contentAlignment = Alignment.Center) {
+                        Text("3D", color = if (popup == "3d") Am.Accent else Am.OnDark, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                    }
                     FontIconButton(TextIcons.Tick, stringResource(R.string.done), finish)
                 }
                 Preview(state, Modifier.fillMaxWidth().height(previewHeight))
@@ -110,6 +116,27 @@ internal fun TextEditor(state: EditorState) {
                         onPick = { name -> library.remember(name); state.editSelected { it.withFont(name) } },
                         onViewAll = { keyboard?.hide(); browser = true })
                     "color" -> ColorPicker(state, layer, Modifier.align(Alignment.TopEnd).padding(top = 42.dp).size(304.dp, 128.dp).background(Am.Panel))
+                    "3d" -> {
+                        val (config, animator) = remember(layer) {
+                            Text3dRenderer.parseConfig(layer.node.attrs)
+                        }
+                        Text3dControlsPanel(
+                            config = config,
+                            animator = animator,
+                            sampleText = layer.content.ifEmpty { "3D TEXT" },
+                            onConfigChange = { newConfig ->
+                                state.editSelected("text-3d-config") { l ->
+                                    Text3dRenderer.applyToLayer(l, newConfig, animator)
+                                }
+                            },
+                            onAnimatorChange = { newAnimator ->
+                                state.editSelected("text-3d-anim") { l ->
+                                    Text3dRenderer.applyToLayer(l, config, newAnimator)
+                                }
+                            },
+                            modifier = Modifier.padding(top = 42.dp).fillMaxWidth().height(320.dp)
+                        )
+                    }
                 }
             }
         }

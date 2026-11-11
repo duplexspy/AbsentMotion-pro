@@ -1,5 +1,7 @@
 package app.absentmotion.ui.editor.panels
 
+import app.absentmotion.ui.tutorial.tutorialGuard
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -64,12 +66,18 @@ internal fun EffectsPanel(state: EditorState, modifier: Modifier) {
     LaunchedEffect(layer.id) { if (shownFor[0] != layer.id) { shownFor[0] = layer.id; state.effectIndex = -1 } }
     LaunchedEffect(instance == null) { if (instance == null && index >= 0) state.effectIndex = -1 }
     var active by remember(layer.id, index, definition?.id) { mutableStateOf(definition?.params?.firstOrNull { it.kind != "color" && it.kind != "switch" && it.kind != "choice" && it.kind != "text" }) }
+    LaunchedEffect(definition) { active = definition?.params?.firstOrNull { it.id == active?.id } }
     var menu by remember { mutableStateOf(false) }
     var choosing by remember { mutableStateOf(false) }
     val usable = instance != null && definition?.available == true
-    val target = active?.takeIf { usable }?.let { KeyTarget(PropRef.effect(index, it.id), it.missingDefault, it.type) }
-    val point = active?.takeIf { it.kind == "point" && usable }
-    val adjust = remember(layer.id, index, point?.id) {
+    var pin by remember(layer.id, index) { mutableStateOf<String?>(null) }
+    var adding by remember(layer.id, index) { mutableStateOf(false) }
+    val puppet = usable && (definition.id == PUPPET_ID || definition.key == "puppet" || definition.id == "puppet") && instance["hidden"] != "true"
+    val pathText = usable && definition.id == TEXT_PATH_ID
+    val pinTarget = if (puppet) pin?.let { name -> instance.effectProperty(name)?.let { KeyTarget(PropRef.effect(index, name), it.valueAt(layer.t) ?: "0,0", "vec2") } } else null
+    val target = pinTarget ?: active?.takeIf { usable && definition.shown(it, instance, layer.t) }?.let { KeyTarget(PropRef.effect(index, it.id), it.missingDefault, it.type) }
+    val point = active?.takeIf { it.kind == "point" && usable && !pathText }
+    val adjust = remember(layer.id, index, point?.id, point?.label) {
         point?.let { param ->
             PointAdjust(param.label) { dx, dy ->
                 state.editSelected("effect-$index-${param.id}") { current ->
@@ -81,8 +89,14 @@ internal fun EffectsPanel(state: EditorState, modifier: Modifier) {
             }
         }
     }
-    SideEffect { state.keyTarget = target; state.pointAdjust = adjust }
-    DisposableEffect(Unit) { onDispose { state.pointAdjust = null } }
+    val full = rememberPinsFull()
+    val points = when {
+        puppet -> puppetPoints(state, layer, index, instance, pin, adding, { pin = it; if (it != null) active = null }, full)
+        pathText -> textPathPoints(state, layer, index, instance, definition, active) { active = it; pin = null }
+        else -> null
+    }
+    SideEffect { state.keyTarget = target; state.pointAdjust = adjust; state.layerPoints = points }
+    DisposableEffect(Unit) { onDispose { state.pointAdjust = null; state.layerPoints = null } }
     if (state.easingOpen) { EasingPanel(state, modifier); return }
     if (choosing) {
         CopyEffectsDialog(layer.effects.map { catalog.find(it["id"] ?: "")?.name ?: it["id"]?.substringAfterLast('.') ?: "" }, { choosing = false }) { ticked ->
@@ -138,8 +152,10 @@ internal fun EffectsPanel(state: EditorState, modifier: Modifier) {
                 Column(Modifier.fillMaxSize().padding(6.5.dp).clip(RowShape).background(Am.Field)) {
                     EffectHeader(state, index, instance, definition)
                     Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState())) {
-                        if (definition != null) EffectSettings(state, layer, instance, definition, active, { active = it })
+                        if (definition != null) EffectSettings(state, layer, instance, definition, active, { active = it; pin = null })
                         else Text(instance["id"] ?: "", Modifier.padding(12.dp).dimmed(), color = Am.OnDark, fontSize = 12.sp)
+                        if (puppet) PuppetSection(state, layer, index, instance, pin, adding, { pin = it; if (it != null) active = null }) { adding = it }
+                        if (pathText) TextPathHint(state, layer, instance)
                     }
                 }
             }
@@ -180,7 +196,7 @@ private fun CopyEffectsDialog(names: List<String>, onDismiss: () -> Unit, onCopy
 private fun EffectHeader(state: EditorState, index: Int, effect: XmlNode, definition: EffectDefinition?) {
     var menu by remember { mutableStateOf(false) }
     var help by remember { mutableStateOf(false) }
-    Row(Modifier.fillMaxWidth().height(37.dp).clickable { state.effectIndex = -1 }.padding(start = 3.dp, end = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+    Row(Modifier.fillMaxWidth().height(37.dp).background(Am.CardHeader).clickable { state.effectIndex = -1 }.padding(start = 3.dp, end = 4.dp), verticalAlignment = Alignment.CenterVertically) {
         Icon(EffectIcons.Expanded, null, Modifier.padding(start = 8.dp).size(18.dp).alpha(0.9f), tint = Am.OnDark)
         val isMissing = definition == null && effect["id"]?.startsWith("gm.custom.") == true
         val nameText = (definition?.name ?: effect["id"]?.substringAfterLast('.') ?: "") + if (isMissing) " (missing pack)" else ""

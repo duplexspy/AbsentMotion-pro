@@ -74,13 +74,20 @@ fun EffectsPackStudio(onClose: () -> Unit) {
 
     var effectName by remember { mutableStateOf("My Custom FX") }
     var effectGroup by remember { mutableStateOf("Color and Grade") }
-    var effectDesc by remember { mutableStateOf("Custom GLSL fragment effect") }
+    var effectDesc by remember { mutableStateOf("Official Absent Motion SkSL shader effect") }
     var shaderCode by remember {
         mutableStateOf(
-            """void main() {
-    vec2 uv = acScreenNorm;
-    vec4 col = texture2DCv(inputImg.texture, uv);
-    gl_FragColor = col;
+            """// Absent Motion Official SkSL Shader
+uniform shader image;
+uniform float2 size;
+uniform float time;
+uniform float intensity;
+
+half4 main(float2 coord) {
+    half4 color = image.eval(coord);
+    // Invert colors modulated by intensity
+    half3 inverted = half3(1.0) - color.rgb;
+    return half4(mix(color.rgb, inverted, half(intensity)), color.a);
 }"""
         )
     }
@@ -95,7 +102,7 @@ fun EffectsPackStudio(onClose: () -> Unit) {
     var compileError by remember { mutableStateOf(false) }
 
     fun buildXml(): String {
-        val safeId = "gm.custom." + effectName.lowercase().replace(Regex("[^a-z0-9]+"), "_").trim('_')
+        val safeId = "absent.custom." + effectName.lowercase().replace(Regex("[^a-z0-9]+"), "_").trim('_')
         val sb = StringBuilder()
         sb.append("<effect id=\"$safeId\" name=\"$effectName\" desc=\"$effectDesc\" group=\"$effectGroup\" category=\"custom\">\n")
         sb.append("  <params>\n")
@@ -107,9 +114,9 @@ fun EffectsPackStudio(onClose: () -> Unit) {
             sb.append("/>\n")
         }
         sb.append("  </params>\n")
-        sb.append("  <glsl><![CDATA[\n")
+        sb.append("  <sksl><![CDATA[\n")
         sb.append(shaderCode.trim())
-        sb.append("\n]]></glsl>\n")
+        sb.append("\n]]></sksl>\n")
         sb.append("</effect>")
         return sb.toString()
     }
@@ -118,17 +125,17 @@ fun EffectsPackStudio(onClose: () -> Unit) {
         try {
             val result = GlslTranslator.translate(shaderCode, params.toList())
             if (result.error != null) {
-                compileStatus = "Translation error: ${result.error}"
+                compileStatus = "Shader validation error: ${result.error}"
                 compileError = true
-            } else if (result.sksl.contains("half4 main(float2 coord)")) {
-                compileStatus = "Shader SkSL translation succeeded (${result.sksl.length} chars)"
+            } else if (result.sksl.contains("half4 main(float2")) {
+                compileStatus = "Official Absent Motion SkSL verified (${result.sksl.length} chars)"
                 compileError = false
             } else {
-                compileStatus = "Shader does not produce valid entry point"
+                compileStatus = "Shader does not produce valid SkSL entry point"
                 compileError = true
             }
         } catch (e: Exception) {
-            compileStatus = e.message ?: "Shader translation failed"
+            compileStatus = e.message ?: "Shader validation failed"
             compileError = true
         }
     }
@@ -178,9 +185,9 @@ fun EffectsPackStudio(onClose: () -> Unit) {
                         Spacer(Modifier.height(16.dp))
 
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                            Text("GLSL Fragment Shader", color = Am.Navy, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                            Text("Absent Motion SkSL Shader", color = Am.Navy, fontSize = 14.sp, fontWeight = FontWeight.Bold)
                             TextButton(onClick = ::compile) {
-                                Text("Compile", color = Am.Accent, fontWeight = FontWeight.Bold)
+                                Text("Validate", color = Am.Accent, fontWeight = FontWeight.Bold)
                             }
                         }
 

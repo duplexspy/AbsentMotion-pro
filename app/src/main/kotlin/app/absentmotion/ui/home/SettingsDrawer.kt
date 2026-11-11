@@ -170,13 +170,13 @@ fun SettingsDrawer(settings: AppSettings, drawer: androidx.compose.material3.Dra
                     PreviewCacheRows(settings)
                 }
             }
+            Category(R.string.settings_group_storage, HomeIcons.Folder) {
+                app.absentmotion.pro.cache.CacheSettingsSection()
+            }
             Category(R.string.settings_group_projects, HomeIcons.Folder) {
                 SwitchRow(stringResource(R.string.settings_open_xml), settings.xmlUpload, enabled = true) { settings.xmlUpload = it }
                 SwitchRow(stringResource(R.string.settings_keep_media_copies), settings.keepMediaCopies, enabled = true) { settings.keepMediaCopies = it }
                 if (settings.demoModeShown) SwitchRow(stringResource(R.string.settings_demo_mode), settings.demoMode, enabled = true) { settings.demoMode = it; demoNote = it }
-                CaptionModelRow()
-                AiModelRows()
-                AiGpuRow()
             }
             Category(R.string.settings_group_backup, ChromeIcons.SavePreset) {
                 BackupRows(settings, onRestored)
